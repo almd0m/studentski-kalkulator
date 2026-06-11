@@ -235,6 +235,12 @@ code {
   line-height: 1;
 }
 
+.welcome-text {
+  margin-top: 8px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .ghost-button {
   background: #fff;
   color: var(--text);
@@ -243,6 +249,20 @@ code {
 
 .ghost-button:hover {
   background: #f8fafc;
+}
+
+.link-button {
+  min-height: auto;
+  justify-self: center;
+  padding: 0;
+  color: var(--accent-strong);
+  background: transparent;
+  font-weight: 800;
+}
+
+.link-button:hover {
+  background: transparent;
+  text-decoration: underline;
 }
 
 .program-card {
@@ -283,7 +303,7 @@ code {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -336,6 +356,7 @@ code {
 
 .inline-form,
 .year-picker,
+.settings-form,
 .subject-form {
   display: grid;
   gap: 12px;
@@ -374,6 +395,98 @@ code {
 
 .subject-form {
   grid-template-columns: 1.6fr 0.7fr 0.9fr 0.7fr auto;
+}
+
+.settings-form {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.warning-note,
+.success-message {
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.92rem;
+}
+
+.divider {
+  height: 1px;
+  margin: 22px 0;
+  background: var(--line);
+}
+
+.password-settings {
+  margin-bottom: 12px;
+}
+
+.password-strength {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.password-strength p,
+.password-strength small {
+  margin: 0;
+}
+
+.strength-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e4e7ec;
+}
+
+.strength-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 160ms ease, background 160ms ease;
+}
+
+.strength-0 .strength-track span {
+  width: 25%;
+  background: var(--danger);
+}
+
+.strength-1 .strength-track span {
+  width: 50%;
+  background: var(--warning);
+}
+
+.strength-2 .strength-track span {
+  width: 75%;
+  background: var(--blue);
+}
+
+.strength-3 .strength-track span {
+  width: 100%;
+  background: var(--accent);
+}
+
+.warning-note {
+  color: var(--warning);
+  background: #fffaeb;
+}
+
+.success-message {
+  margin-top: 10px;
+  color: #067647;
+  background: var(--ok-bg);
+}
+
+.progress-bar {
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e4e7ec;
+}
+
+.progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--blue));
 }
 
 .semester-grid {
@@ -477,6 +590,18 @@ th {
   background: var(--danger);
 }
 
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.table-actions button {
+  min-height: 36px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
 .empty {
   padding: 16px 0;
 }
@@ -538,6 +663,7 @@ th {
 
   .inline-form,
   .year-picker,
+  .settings-form,
   .subject-form {
     grid-template-columns: 1fr 1fr;
   }
@@ -566,6 +692,7 @@ th {
   .lists-grid,
   .inline-form,
   .year-picker,
+  .settings-form,
   .subject-form {
     grid-template-columns: 1fr;
   }

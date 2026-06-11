@@ -7,7 +7,8 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles
-  add column if not exists onboarding_completed boolean not null default false;
+  add column if not exists onboarding_completed boolean not null default false,
+  add column if not exists full_name text;
 
 create table if not exists public.study_programs (
   id uuid primary key default gen_random_uuid(),
@@ -251,8 +252,8 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, onboarding_completed)
-  values (new.id, new.email, false)
+  insert into public.profiles (id, email, full_name, onboarding_completed)
+  values (new.id, new.email, null, false)
   on conflict (id) do update set email = excluded.email;
   return new;
 end;

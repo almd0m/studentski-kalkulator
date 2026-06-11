@@ -33,6 +33,8 @@ const SUBJECT_STATUSES = {
   planned: "Planiran"
 };
 
+const PASSWORD_LEVELS = ["Slaba", "Srednja", "Jaka", "Vrlo jaka"];
+
 function calculateStats(subjects) {
   const passedSubjects = subjects.filter((subject) => subject.status === "passed");
   const failedSubjects = subjects.filter((subject) => subject.status === "failed");
@@ -40,13 +42,15 @@ function calculateStats(subjects) {
   const attemptedEcts = subjects.reduce((sum, subject) => sum + Number(subject.ects), 0);
   const earnedEcts = passedSubjects.reduce((sum, subject) => sum + Number(subject.ects), 0);
   const failedEcts = failedSubjects.reduce((sum, subject) => sum + Number(subject.ects), 0);
+  const averageDenominator = failedSubjects.length > 0 ? earnedEcts + failedEcts : earnedEcts;
   const weightedSum = passedSubjects.reduce(
     (sum, subject) => sum + Number(subject.grade) * Number(subject.ects),
     0
   );
 
   return {
-    average: earnedEcts > 0 ? weightedSum / earnedEcts : 0,
+    average: averageDenominator > 0 ? weightedSum / averageDenominator : 0,
+    weightedSum,
     attemptedEcts,
     earnedEcts,
     failedEcts,
@@ -54,6 +58,139 @@ function calculateStats(subjects) {
     failedSubjects,
     plannedSubjects
   };
+}
+
+function calculateProgress(earnedEcts, totalEcts) {
+  if (!totalEcts) {
+    return 0;
+  }
+
+  return Math.min(100, (earnedEcts / Number(totalEcts)) * 100);
+}
+
+function normalizeSubjectForm(form) {
+  return {
+    name: form.name.trim(),
+    ects: Number(form.ects),
+    grade: form.grade === "" ? null : Number(form.grade),
+    status: form.status
+  };
+}
+
+function validateSubject(values) {
+  if (!values.name) {
+    return "Naziv predmeta ne smije biti prazan.";
+  }
+
+  if (!Number.isFinite(values.ects) || values.ects <= 0) {
+    return "ECTS mora biti veci od 0.";
+  }
+
+  if (values.status === "passed" && (!Number.isInteger(values.grade) || values.grade < 6 || values.grade > 10)) {
+    return "Za polozen predmet ocjena mora biti od 6 do 10.";
+  }
+
+  if (values.status === "failed" && values.grade !== null && values.grade !== 5) {
+    return "Za nepolozen predmet ocjena moze biti 5 ili prazna.";
+  }
+
+  if (values.status === "planned" && values.grade !== null) {
+    return "Planirani predmet ne moze imati ocjenu.";
+  }
+
+  return "";
+}
+
+function logAuthError(error) {
+  if (import.meta.env.DEV && error) {
+    console.error(error);
+  }
+}
+
+function getFriendlyAuthError(error) {
+  const message = `${error?.message || ""} ${error?.name || ""}`.toLowerCase();
+
+  logAuthError(error);
+
+  if (message.includes("invalid login") || message.includes("invalid_grant") || message.includes("credentials")) {
+    return "Email ili lozinka nisu ispravni.";
+  }
+
+  if (message.includes("jwt") || message.includes("expired") || message.includes("session")) {
+    return "Sesija je istekla. Prijavite se ponovo.";
+  }
+
+  if (message.includes("email")) {
+    return "Provjerite email adresu i pokusajte ponovo.";
+  }
+
+  if (message.includes("password") || message.includes("weak")) {
+    return "Lozinka nije dovoljno jaka.";
+  }
+
+  return "Doslo je do greske. Pokusajte ponovo.";
+}
+
+function getPasswordStrength(password, email = "", name = "") {
+  const normalizedPassword = password.toLowerCase();
+  const normalizedEmail = email.toLowerCase();
+  const emailUser = normalizedEmail.split("@")[0] || "";
+  const normalizedName = name.toLowerCase().trim();
+  const weakPatterns = ["123456", "12345678", "password", "qwerty", "abcdef", "111111", "lozinka"];
+  let score = 0;
+  const issues = [];
+
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  if (password.length < 8) {
+    issues.push("Lozinka mora imati najmanje 8 karaktera.");
+  }
+
+  if (weakPatterns.some((pattern) => normalizedPassword.includes(pattern))) {
+    score = Math.min(score, 1);
+    issues.push("Izbjegni jednostavne obrasce kao 123456, password ili qwerty.");
+  }
+
+  if (emailUser.length >= 3 && normalizedPassword.includes(emailUser)) {
+    score = Math.min(score, 1);
+    issues.push("Lozinka ne bi trebala sadrzati email adresu.");
+  }
+
+  if (normalizedName.length >= 3 && normalizedPassword.includes(normalizedName)) {
+    score = Math.min(score, 1);
+    issues.push("Lozinka ne bi trebala sadrzati ime.");
+  }
+
+  const index = password.length === 0 ? 0 : Math.min(3, Math.max(0, score - 1));
+
+  return {
+    label: PASSWORD_LEVELS[index],
+    score: index,
+    isWeak: index === 0,
+    issues
+  };
+}
+
+function validatePasswordChange(password, confirmPassword, email = "", name = "") {
+  const strength = getPasswordStrength(password, email, name);
+
+  if (password.length < 8) {
+    return "Lozinka mora imati najmanje 8 karaktera.";
+  }
+
+  if (strength.isWeak) {
+    return "Lozinka nije dovoljno jaka.";
+  }
+
+  if (password !== confirmPassword) {
+    return "Potvrda lozinke mora biti ista kao nova lozinka.";
+  }
+
+  return "";
 }
 
 function formatNumber(value) {
@@ -95,6 +232,10 @@ function App() {
     return <main className="center-page">Ucitavanje...</main>;
   }
 
+  if (window.location.pathname === "/reset-password") {
+    return <ResetPasswordPage session={session} />;
+  }
+
   return session ? <StudentApp session={session} /> : <AuthPage />;
 }
 
@@ -117,13 +258,39 @@ function AuthPage() {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const passwordStrength = getPasswordStrength(password, email);
 
   async function handleSubmit(event) {
     event.preventDefault();
     setMessage("");
     setBusy(true);
+
+    if (mode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) {
+        logAuthError(error);
+      }
+
+      setBusy(false);
+      setMessage("Ako nalog sa ovom email adresom postoji, poslat je link za resetovanje lozinke.");
+      return;
+    }
+
+    if (mode === "register") {
+      const passwordError = validatePasswordChange(password, confirmPassword, email);
+
+      if (passwordError) {
+        setBusy(false);
+        setMessage(passwordError);
+        return;
+      }
+    }
 
     const authCall =
       mode === "login"
@@ -134,12 +301,12 @@ function AuthPage() {
     setBusy(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getFriendlyAuthError(error));
       return;
     }
 
     if (mode === "register") {
-      setMessage("Nalog je kreiran. Ako je potvrda emaila ukljucena, provjeri inbox prije prijave.");
+      setMessage("Nalog je kreiran. Provjerite email i potvrdite registraciju.");
     }
   }
 
@@ -165,23 +332,140 @@ function AuthPage() {
             Email
             <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           </label>
-          <label>
-            Lozinka
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              minLength="6"
-              required
-            />
-          </label>
+          {mode !== "forgot" && (
+            <label>
+              Lozinka
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                minLength={mode === "register" ? "8" : "6"}
+                required
+              />
+            </label>
+          )}
+          {mode === "register" && (
+            <>
+              <PasswordStrengthMeter strength={passwordStrength} />
+              <label>
+                Potvrdi lozinku
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  minLength="8"
+                  required
+                />
+              </label>
+            </>
+          )}
           <button type="submit" disabled={busy}>
-            {busy ? "Sacekaj..." : mode === "login" ? "Prijavi se" : "Registruj se"}
+            {busy
+              ? "Sacekaj..."
+              : mode === "login"
+                ? "Prijavi se"
+                : mode === "register"
+                  ? "Registruj se"
+                  : "Posalji link za reset"}
           </button>
+          {mode === "login" && (
+            <button className="link-button" type="button" onClick={() => setMode("forgot")}>
+              Zaboravili ste lozinku?
+            </button>
+          )}
+          {mode === "forgot" && (
+            <button className="link-button" type="button" onClick={() => setMode("login")}>
+              Nazad na prijavu
+            </button>
+          )}
           {message && <p className="form-message">{message}</p>}
         </form>
       </section>
     </main>
+  );
+}
+
+function ResetPasswordPage({ session }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const strength = getPasswordStrength(password, session?.user?.email || "");
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setMessage("");
+
+    const passwordError = validatePasswordChange(password, confirmPassword, session?.user?.email || "");
+
+    if (passwordError) {
+      setMessage(passwordError);
+      return;
+    }
+
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+
+    if (error) {
+      setMessage(getFriendlyAuthError(error));
+      return;
+    }
+
+    setMessage("Lozinka je uspjesno promijenjena.");
+
+    window.setTimeout(() => {
+      window.history.replaceState({}, "", "/");
+      window.location.reload();
+    }, 1200);
+  }
+
+  return (
+    <main className="center-page">
+      <section className="auth-card">
+        <p className="eyebrow">Sigurnost naloga</p>
+        <h1>Nova lozinka</h1>
+        <form className="stack-form" onSubmit={handleSubmit}>
+          <label>
+            Nova lozinka
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength="8"
+              required
+            />
+          </label>
+          <PasswordStrengthMeter strength={strength} />
+          <label>
+            Potvrdi novu lozinku
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              minLength="8"
+              required
+            />
+          </label>
+          <button type="submit" disabled={busy}>{busy ? "Cuvam..." : "Promijeni lozinku"}</button>
+          {message && <p className="form-message">{message}</p>}
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function PasswordStrengthMeter({ strength }) {
+  return (
+    <div className={`password-strength strength-${strength.score}`}>
+      <div className="strength-track">
+        <span />
+      </div>
+      <p>
+        Jacina lozinke: <strong>{strength.label}</strong>
+      </p>
+      {strength.issues[0] && <small>{strength.issues[0]}</small>}
+    </div>
   );
 }
 
@@ -209,7 +493,7 @@ function StudentApp({ session }) {
       .maybeSingle();
 
     if (profileResult.error) {
-      setError(profileResult.error.message);
+      setError(getFriendlyAuthError(profileResult.error));
       setLoading(false);
       return;
     }
@@ -222,13 +506,14 @@ function StudentApp({ session }) {
         .insert({
           id: session.user.id,
           email: session.user.email,
+          full_name: null,
           onboarding_completed: false
         })
         .select()
         .single();
 
       if (insertError) {
-        setError(insertError.message);
+        setError(getFriendlyAuthError(insertError));
         setLoading(false);
         return;
       }
@@ -255,10 +540,7 @@ function StudentApp({ session }) {
 
     if (programResult.error || yearsResult.error || semestersResult.error || subjectsResult.error) {
       setError(
-        programResult.error?.message ||
-          yearsResult.error?.message ||
-          semestersResult.error?.message ||
-          subjectsResult.error?.message
+        getFriendlyAuthError(programResult.error || yearsResult.error || semestersResult.error || subjectsResult.error)
       );
       return;
     }
@@ -297,9 +579,12 @@ function StudentApp({ session }) {
     <Dashboard
       session={session}
       program={program}
+      profile={profile}
       academicYears={academicYears}
       semesters={semesters}
       subjects={subjects}
+      setProfile={setProfile}
+      setProgram={setProgram}
       setSubjects={setSubjects}
       error={error}
       setError={setError}
@@ -309,6 +594,7 @@ function StudentApp({ session }) {
 }
 
 function Onboarding({ session, onComplete, onSignOut, initialError }) {
+  const [fullName, setFullName] = useState("");
   const [universityName, setUniversityName] = useState("");
   const [facultyName, setFacultyName] = useState("");
   const [programName, setProgramName] = useState("");
@@ -331,6 +617,12 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
     event.preventDefault();
     setError("");
     setBusy(true);
+
+    if (fullName.trim().length < 2) {
+      setError("Ime i prezime mora imati najmanje 2 karaktera.");
+      setBusy(false);
+      return;
+    }
 
     if (!universityName.trim() || !facultyName.trim() || !programName.trim()) {
       setError("Unesi univerzitet, fakultet i naziv studijskog programa.");
@@ -376,7 +668,7 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
       .single();
 
     if (programError) {
-      setError(programError.message);
+      setError(getFriendlyAuthError(programError));
       setBusy(false);
       return;
     }
@@ -394,7 +686,7 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
       .select();
 
     if (yearsError) {
-      setError(yearsError.message);
+      setError(getFriendlyAuthError(yearsError));
       setBusy(false);
       return;
     }
@@ -418,20 +710,20 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
     const { error: semestersError } = await supabase.from("semesters").insert(semestersToCreate);
 
     if (semestersError) {
-      setError(semestersError.message);
+      setError(getFriendlyAuthError(semestersError));
       setBusy(false);
       return;
     }
 
     const { data: updatedProfile, error: profileError } = await supabase
       .from("profiles")
-      .update({ onboarding_completed: true })
+      .update({ full_name: fullName.trim(), onboarding_completed: true })
       .eq("id", session.user.id)
       .select()
       .single();
 
     if (profileError) {
-      setError(profileError.message);
+      setError(getFriendlyAuthError(profileError));
       setBusy(false);
       return;
     }
@@ -458,6 +750,16 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
         {error && <p className="alert">{error}</p>}
 
         <form className="onboarding-form" onSubmit={createStudyPlan}>
+          <label>
+            Ime i prezime
+            <input
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder="Amina Hadzic"
+              required
+            />
+          </label>
+
           <label>
             Univerzitet
             <input
@@ -548,9 +850,12 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
 function Dashboard({
   session,
   program,
+  profile,
   academicYears,
   semesters,
   subjects,
+  setProfile,
+  setProgram,
   setSubjects,
   error,
   setError,
@@ -558,7 +863,29 @@ function Dashboard({
 }) {
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState(academicYears[0]?.id || "");
   const [selectedSemesterId, setSelectedSemesterId] = useState("");
+  const [profileForm, setProfileForm] = useState({
+    full_name: profile?.full_name || "",
+    university_name: program?.university_name || "",
+    faculty_name: program?.faculty_name || "",
+    program_name: program?.program_name || "",
+    study_level: program?.study_level || program?.degree_type || "bachelor",
+    start_academic_year: program?.start_academic_year || ACADEMIC_YEARS[0]
+  });
+  const [profileMessage, setProfileMessage] = useState("");
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    password: "",
+    confirmPassword: ""
+  });
+  const [passwordMessage, setPasswordMessage] = useState("");
   const [subjectForm, setSubjectForm] = useState({
+    name: "",
+    ects: "",
+    grade: "",
+    status: "passed"
+  });
+  const [editingSubjectId, setEditingSubjectId] = useState(null);
+  const [editSubjectForm, setEditSubjectForm] = useState({
     name: "",
     ects: "",
     grade: "",
@@ -566,11 +893,17 @@ function Dashboard({
   });
 
   const yearSemesters = semesters.filter((semester) => semester.academic_year_id === selectedAcademicYearId);
+  const yearSemesterIds = new Set(yearSemesters.map((semester) => semester.id));
+  const yearSubjects = subjects.filter((subject) => yearSemesterIds.has(subject.semester_id));
   const selectedSemester = semesters.find((semester) => semester.id === selectedSemesterId) || yearSemesters[0];
   const selectedSubjects = subjects.filter((subject) => subject.semester_id === selectedSemester?.id);
   const totalStats = useMemo(() => calculateStats(subjects), [subjects]);
+  const yearStats = useMemo(() => calculateStats(yearSubjects), [yearSubjects]);
   const semesterStats = useMemo(() => calculateStats(selectedSubjects), [selectedSubjects]);
   const programStudyLevel = program?.study_level || program?.degree_type;
+  const progress = calculateProgress(totalStats.earnedEcts, program?.total_ects);
+  const greetingName = profile?.full_name || session.user.email;
+  const newPasswordStrength = getPasswordStrength(passwordForm.password, session.user.email, profile?.full_name || "");
 
   useEffect(() => {
     if (!selectedAcademicYearId && academicYears[0]) {
@@ -586,41 +919,106 @@ function Dashboard({
     }
   }, [selectedAcademicYearId, semesters]);
 
+  async function updateProfileAndProgram(event) {
+    event.preventDefault();
+    setError("");
+    setProfileMessage("");
+
+    if (profileForm.full_name.trim().length < 2) {
+      setError("Ime i prezime mora imati najmanje 2 karaktera.");
+      return;
+    }
+
+    const [profileResult, programResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .update({ full_name: profileForm.full_name.trim() })
+        .eq("id", session.user.id)
+        .select()
+        .single(),
+      supabase
+        .from("study_programs")
+        .update({
+          university_name: profileForm.university_name.trim(),
+          faculty_name: profileForm.faculty_name.trim(),
+          program_name: profileForm.program_name.trim(),
+          study_level: profileForm.study_level,
+          degree_type: profileForm.study_level,
+          start_academic_year: profileForm.start_academic_year
+        })
+        .eq("id", program.id)
+        .select()
+        .single()
+    ]);
+
+    if (profileResult.error || programResult.error) {
+      setError(getFriendlyAuthError(profileResult.error || programResult.error));
+      return;
+    }
+
+    setProfile(profileResult.data);
+    setProgram(programResult.data);
+    setProfileMessage("Profil je sacuvan.");
+  }
+
+  async function changePassword(event) {
+    event.preventDefault();
+    setError("");
+    setPasswordMessage("");
+
+    if (!passwordForm.currentPassword) {
+      setPasswordMessage("Unesite trenutnu lozinku.");
+      return;
+    }
+
+    const passwordError = validatePasswordChange(
+      passwordForm.password,
+      passwordForm.confirmPassword,
+      session.user.email,
+      profile?.full_name || ""
+    );
+
+    if (passwordError) {
+      setPasswordMessage(passwordError);
+      return;
+    }
+
+    const { error: currentPasswordError } = await supabase.auth.signInWithPassword({
+      email: session.user.email,
+      password: passwordForm.currentPassword
+    });
+
+    if (currentPasswordError) {
+      setPasswordMessage("Trenutna lozinka nije ispravna.");
+      logAuthError(currentPasswordError);
+      return;
+    }
+
+    const { error: passwordErrorResponse } = await supabase.auth.updateUser({ password: passwordForm.password });
+
+    if (passwordErrorResponse) {
+      setPasswordMessage(getFriendlyAuthError(passwordErrorResponse));
+      return;
+    }
+
+    setPasswordForm({ currentPassword: "", password: "", confirmPassword: "" });
+    setPasswordMessage("Lozinka je uspjesno promijenjena.");
+  }
+
   async function addSubject(event) {
     event.preventDefault();
     setError("");
-
-    const name = subjectForm.name.trim();
-    const ects = Number(subjectForm.ects);
-    const grade = subjectForm.grade === "" ? null : Number(subjectForm.grade);
 
     if (!selectedSemester?.id) {
       setError("Prvo odaberi semestar.");
       return;
     }
 
-    if (!name) {
-      setError("Naziv predmeta ne smije biti prazan.");
-      return;
-    }
+    const values = normalizeSubjectForm(subjectForm);
+    const validationError = validateSubject(values);
 
-    if (!Number.isFinite(ects) || ects <= 0) {
-      setError("ECTS mora biti veci od 0.");
-      return;
-    }
-
-    if (subjectForm.status === "passed" && (!Number.isInteger(grade) || grade < 6 || grade > 10)) {
-      setError("Za polozen predmet ocjena mora biti od 6 do 10.");
-      return;
-    }
-
-    if (subjectForm.status === "failed" && grade !== null && grade !== 5) {
-      setError("Za nepolozen predmet ocjena moze biti 5 ili prazna.");
-      return;
-    }
-
-    if (subjectForm.status === "planned" && grade !== null) {
-      setError("Planirani predmet ne moze imati ocjenu.");
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -629,16 +1027,13 @@ function Dashboard({
       .insert({
         user_id: session.user.id,
         semester_id: selectedSemester.id,
-        name,
-        ects,
-        grade,
-        status: subjectForm.status
+        ...values
       })
       .select()
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      setError(getFriendlyAuthError(insertError));
       return;
     }
 
@@ -646,11 +1041,53 @@ function Dashboard({
     setSubjectForm({ name: "", ects: "", grade: "", status: "passed" });
   }
 
+  function startEditingSubject(subject) {
+    setEditingSubjectId(subject.id);
+    setEditSubjectForm({
+      name: subject.name,
+      ects: String(subject.ects),
+      grade: subject.grade ?? "",
+      status: subject.status
+    });
+  }
+
+  function cancelEditingSubject() {
+    setEditingSubjectId(null);
+    setEditSubjectForm({ name: "", ects: "", grade: "", status: "passed" });
+  }
+
+  async function updateSubject(subjectId) {
+    setError("");
+
+    const values = normalizeSubjectForm(editSubjectForm);
+    const validationError = validateSubject(values);
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    const { data, error: updateError } = await supabase
+      .from("subjects")
+      .update(values)
+      .eq("id", subjectId)
+      .select()
+      .single();
+
+    if (updateError) {
+      setError(getFriendlyAuthError(updateError));
+      return;
+    }
+
+    setSubjects((current) => current.map((subject) => (subject.id === subjectId ? data : subject)));
+    cancelEditingSubject();
+  }
+
   async function deleteSubject(subjectId) {
     const { error: deleteError } = await supabase.from("subjects").delete().eq("id", subjectId);
 
     if (deleteError) {
-      setError(deleteError.message);
+      setError(getFriendlyAuthError(deleteError));
       return;
     }
 
@@ -665,12 +1102,21 @@ function Dashboard({
     }));
   }
 
+  function updateEditStatus(status) {
+    setEditSubjectForm((current) => ({
+      ...current,
+      status,
+      grade: status === "planned" ? "" : current.grade
+    }));
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <div>
           <p className="eyebrow">Moj Prosjek</p>
           <h1>Dashboard</h1>
+          <p className="welcome-text">Dobrodošao, {greetingName}</p>
         </div>
         <button className="ghost-button" type="button" onClick={onSignOut}>
           <LogOut size={18} />
@@ -699,10 +1145,132 @@ function Dashboard({
       )}
 
       <section className="summary-grid">
-        <StatCard label="Ukupni prosjek" value={totalStats.average ? totalStats.average.toFixed(2) : "-"} />
-        <StatCard label="Osvojeno ECTS" value={formatNumber(totalStats.earnedEcts)} />
-        <StatCard label="Prijavljeno ECTS" value={formatNumber(totalStats.attemptedEcts)} />
+        <StatCard label="Ukupni prosjek studija" value={totalStats.average ? totalStats.average.toFixed(2) : "-"} />
+        <StatCard label="Ukupno osvojeno ECTS" value={formatNumber(totalStats.earnedEcts)} />
+        <StatCard label="Ukupno planirano ECTS" value={formatNumber(Number(program?.total_ects || 0))} />
         <StatCard label="Nepolozeno ECTS" value={formatNumber(totalStats.failedEcts)} />
+        <StatCard label="Procenat zavrsenih studija" value={`${progress.toFixed(0)}%`} />
+      </section>
+
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>Profil i studijski program</h2>
+            <p>Tekstualne podatke mozes mijenjati bez rekreiranja semestara.</p>
+          </div>
+        </div>
+        <form className="settings-form" onSubmit={updateProfileAndProgram}>
+          <label>
+            Ime i prezime
+            <input
+              value={profileForm.full_name}
+              onChange={(event) => setProfileForm({ ...profileForm, full_name: event.target.value })}
+            />
+          </label>
+          <label>
+            Univerzitet
+            <input
+              value={profileForm.university_name}
+              onChange={(event) => setProfileForm({ ...profileForm, university_name: event.target.value })}
+            />
+          </label>
+          <label>
+            Fakultet
+            <input
+              value={profileForm.faculty_name}
+              onChange={(event) => setProfileForm({ ...profileForm, faculty_name: event.target.value })}
+            />
+          </label>
+          <label>
+            Studijski program
+            <input
+              value={profileForm.program_name}
+              onChange={(event) => setProfileForm({ ...profileForm, program_name: event.target.value })}
+            />
+          </label>
+          <label>
+            Nivo studija
+            <select
+              value={profileForm.study_level}
+              onChange={(event) => setProfileForm({ ...profileForm, study_level: event.target.value })}
+            >
+              <option value="bachelor">Bachelor / osnovne</option>
+              <option value="master">Master</option>
+            </select>
+          </label>
+          <label>
+            Pocetna akademska godina
+            <select
+              value={profileForm.start_academic_year}
+              onChange={(event) => setProfileForm({ ...profileForm, start_academic_year: event.target.value })}
+            >
+              {ACADEMIC_YEARS.map((academicYear) => (
+                <option key={academicYear} value={academicYear}>
+                  {academicYear}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit">Sacuvaj profil</button>
+        </form>
+        <p className="warning-note">
+          Ukupni ECTS se ne mijenja ovdje jer promjena moze uticati na strukturu vec kreiranih semestara i predmeta.
+        </p>
+        {profileMessage && <p className="success-message">{profileMessage}</p>}
+
+        <div className="divider" />
+
+        <div className="section-title">
+          <div>
+            <h2>Promijeni lozinku</h2>
+            <p>Koristi najmanje 8 karaktera; preporuceno je 12 ili vise.</p>
+          </div>
+        </div>
+        <form className="settings-form password-settings" onSubmit={changePassword}>
+          <label>
+            Trenutna lozinka
+            <input
+              type="password"
+              value={passwordForm.currentPassword}
+              onChange={(event) => setPasswordForm({ ...passwordForm, currentPassword: event.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Nova lozinka
+            <input
+              type="password"
+              value={passwordForm.password}
+              onChange={(event) => setPasswordForm({ ...passwordForm, password: event.target.value })}
+              minLength="8"
+            />
+          </label>
+          <label>
+            Potvrdi novu lozinku
+            <input
+              type="password"
+              value={passwordForm.confirmPassword}
+              onChange={(event) => setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })}
+              minLength="8"
+            />
+          </label>
+          <button type="submit">Promijeni lozinku</button>
+        </form>
+        <PasswordStrengthMeter strength={newPasswordStrength} />
+        {passwordMessage && <p className="form-message">{passwordMessage}</p>}
+      </section>
+
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>Napredak kroz studije</h2>
+            <p>{formatNumber(totalStats.earnedEcts)} od {formatNumber(Number(program?.total_ects || 0))} ECTS</p>
+          </div>
+          <div className="semester-average">{progress.toFixed(0)}%</div>
+        </div>
+        <div className="progress-bar" aria-label="Procenat zavrsenih studija">
+          <span style={{ width: `${progress}%` }} />
+        </div>
       </section>
 
       <section className="panel">
@@ -725,6 +1293,12 @@ function Dashboard({
             </button>
           ))}
         </div>
+
+        <section className="summary-grid compact">
+          <StatCard label="Prosjek godine" value={yearStats.average ? yearStats.average.toFixed(2) : "-"} />
+          <StatCard label="Osvojeno ECTS u godini" value={formatNumber(yearStats.earnedEcts)} />
+          <StatCard label="Nepolozeno ECTS u godini" value={formatNumber(yearStats.failedEcts)} />
+        </section>
 
         <div className="semester-grid">
           {yearSemesters.map((semester) => {
@@ -813,10 +1387,21 @@ function Dashboard({
             </button>
           </form>
 
-          <SubjectTable subjects={selectedSubjects} onDelete={deleteSubject} />
+          <SubjectTable
+            subjects={selectedSubjects}
+            editingSubjectId={editingSubjectId}
+            editSubjectForm={editSubjectForm}
+            setEditSubjectForm={setEditSubjectForm}
+            onEdit={startEditingSubject}
+            onUpdate={updateSubject}
+            onCancel={cancelEditingSubject}
+            onDelete={deleteSubject}
+            onEditStatusChange={updateEditStatus}
+          />
           <SubjectLists stats={semesterStats} />
         </section>
       )}
+
     </main>
   );
 }
@@ -830,7 +1415,17 @@ function StatCard({ label, value }) {
   );
 }
 
-function SubjectTable({ subjects, onDelete }) {
+function SubjectTable({
+  subjects,
+  editingSubjectId,
+  editSubjectForm,
+  setEditSubjectForm,
+  onEdit,
+  onUpdate,
+  onCancel,
+  onDelete,
+  onEditStatusChange
+}) {
   if (subjects.length === 0) {
     return <p className="empty">U ovom semestru jos nema predmeta.</p>;
   }
@@ -850,17 +1445,67 @@ function SubjectTable({ subjects, onDelete }) {
         <tbody>
           {subjects.map((subject) => (
             <tr key={subject.id}>
-              <td>{subject.name}</td>
-              <td>{formatNumber(Number(subject.ects))}</td>
-              <td>{subject.grade ?? "-"}</td>
-              <td>
-                <span className={`status ${subject.status}`}>{SUBJECT_STATUSES[subject.status]}</span>
-              </td>
-              <td>
-                <button className="icon-button" type="button" onClick={() => onDelete(subject.id)} aria-label="Obrisi predmet">
-                  <Trash2 size={17} />
-                </button>
-              </td>
+              {editingSubjectId === subject.id ? (
+                <>
+                  <td>
+                    <input
+                      value={editSubjectForm.name}
+                      onChange={(event) => setEditSubjectForm({ ...editSubjectForm, name: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      value={editSubjectForm.ects}
+                      onChange={(event) => setEditSubjectForm({ ...editSubjectForm, ects: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min={editSubjectForm.status === "failed" ? "5" : "6"}
+                      max="10"
+                      value={editSubjectForm.grade}
+                      disabled={editSubjectForm.status === "planned"}
+                      onChange={(event) => setEditSubjectForm({ ...editSubjectForm, grade: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <select value={editSubjectForm.status} onChange={(event) => onEditStatusChange(event.target.value)}>
+                      <option value="passed">Polozen</option>
+                      <option value="failed">Pao</option>
+                      <option value="planned">Planiran</option>
+                    </select>
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <button type="button" onClick={() => onUpdate(subject.id)}>Sacuvaj</button>
+                      <button className="ghost-button" type="button" onClick={onCancel}>Otkazi</button>
+                    </div>
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td>{subject.name}</td>
+                  <td>{formatNumber(Number(subject.ects))}</td>
+                  <td>{subject.grade ?? "-"}</td>
+                  <td>
+                    <span className={`status ${subject.status}`}>{SUBJECT_STATUSES[subject.status]}</span>
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="ghost-button" type="button" onClick={() => onEdit(subject)}>
+                        Uredi
+                      </button>
+                      <button className="icon-button" type="button" onClick={() => onDelete(subject.id)} aria-label="Obrisi predmet">
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
+                  </td>
+                </>
+              )}
             </tr>
           ))}
         </tbody>
