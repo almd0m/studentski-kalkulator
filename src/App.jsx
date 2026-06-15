@@ -517,11 +517,11 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
   const [facultyName, setFacultyName] = useState("");
   const [programName, setProgramName] = useState("");
   const [studyType, setStudyType] = useState("bachelor_3_year");
+  const [startAcademicYear, setStartAcademicYear] = useState(DEFAULT_START_YEAR);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError || "");
 
   const selectedStudyType = STUDY_TYPES[studyType];
-  const startAcademicYear = DEFAULT_START_YEAR;
   const totalEcts = selectedStudyType.programEcts;
   const semesterEctsDefault = selectedStudyType.defaultSemesterEcts;
   const semestersCount = selectedStudyType.semestersCount;
