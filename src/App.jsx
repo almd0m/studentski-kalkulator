@@ -45,7 +45,7 @@ const STUDY_TYPES = {
     defaultSemesterEcts: 30
   },
   master_1_year: {
-    label: "Master jedn",
+    label: "Četvorogodišnje studije",
     description: "1 godina, 2 semestra, 60 ECTS + prethodnih 180 ECTS",
     studyLevel: "master",
     programEcts: 60,

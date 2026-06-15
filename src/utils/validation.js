@@ -25,7 +25,7 @@ export function applySubjectGrade(form, grade) {
   return {
     ...form,
     grade,
-    status: getSubjectStatusFromGrade(grade) || form.status
+    status: getSubjectStatusFromGrade(grade)
   };
 }
 

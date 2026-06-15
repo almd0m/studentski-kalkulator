@@ -47,13 +47,17 @@ Nikada ne stavljati `service_role`, secret key ili admin key u frontend aplikaci
 
 ## Supabase baza
 
-Za setup baze koristi:
+Aktivni setup fajl za novu Supabase bazu je:
 
 ```text
 supabase/current_schema.sql
 ```
 
-U Supabase dashboardu otvori **SQL Editor**, zalijepi sadrzaj tog fajla i pokreni query. Stari SQL fajlovi su sacuvani u `supabase/legacy/`.
+Za novi clean setup otvori **Supabase SQL Editor**, zalijepi sadrzaj fajla `supabase/current_schema.sql` i pokreni query. Taj fajl predstavlja trenutno kompletno stanje baze koje aplikacija ocekuje.
+
+Folder `supabase/legacy/` je samo istorijska arhiva starih SQL fajlova iz ranijih faza razvoja. Ti fajlovi se ne koriste za nove deploye i ne treba ih pokretati za novi Supabase projekat.
+
+Folder `supabase/migrations/` sadrzi nedestruktivne migracije koje mogu biti korisne samo ako azuriras postojecu bazu iz starije verzije projekta. Za potpuno novu bazu koristi samo `supabase/current_schema.sql`.
 
 ## Reset password redirect
 

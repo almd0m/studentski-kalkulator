@@ -3,7 +3,7 @@ import { SUBJECT_STATUSES } from "../utils/formatting";
 import { applySubjectGrade } from "../utils/validation";
 
 export default function SubjectForm({ subjectForm, saving, onChange, onSubmit }) {
-  const statusLabel = SUBJECT_STATUSES[subjectForm.status] || "Nedovršen unos";
+  const statusLabel = SUBJECT_STATUSES[subjectForm.status] || "Unesite ocjenu";
 
   return (
     <form className="subject-form" onSubmit={onSubmit}>

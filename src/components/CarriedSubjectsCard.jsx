@@ -7,7 +7,7 @@ function formatDestinationSemester(label) {
 export default function CarriedSubjectsCard({ carriedSubjects, subjects }) {
   const totalEcts = carriedSubjects.reduce((sum, subject) => sum + subject.ects, 0);
   const hasSubjects = subjects.length > 0;
-  const hasIncompleteSubjects = subjects.some((subject) => subject.status === "planned" || subject.grade === null);
+  const hasIncompleteSubjects = subjects.some((subject) => subject.grade === null);
 
   return (
     <section className="panel carried-subjects-card">

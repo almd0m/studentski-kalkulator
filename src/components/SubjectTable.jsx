@@ -72,7 +72,9 @@ export default function SubjectTable({
                       <button type="button" onClick={() => onUpdate(subject.id)} disabled={saving}>
                         {saving ? "Spremanje..." : "Sačuvaj"}
                       </button>
-                      <button className="ghost-button" type="button" onClick={onCancel}>Otkaži</button>
+                      <button className="ghost-button" type="button" onClick={onCancel}>
+                        Otkaži
+                      </button>
                     </div>
                   </td>
                 </>
@@ -91,7 +93,13 @@ export default function SubjectTable({
                       <button className="ghost-button" type="button" onClick={() => onEdit(subject)}>
                         Uredi
                       </button>
-                      <button className="icon-button" type="button" onClick={() => onDelete(subject.id)} aria-label="Obriši predmet" disabled={saving}>
+                      <button
+                        className="icon-button"
+                        type="button"
+                        onClick={() => onDelete(subject.id)}
+                        aria-label="Obriši predmet"
+                        disabled={saving}
+                      >
                         <Trash2 size={17} />
                       </button>
                     </div>

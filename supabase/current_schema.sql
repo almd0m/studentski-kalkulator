@@ -59,13 +59,12 @@ create table if not exists public.subjects (
   semester_id uuid not null references public.semesters(id) on delete cascade,
   name text not null,
   ects numeric(6,2) not null check (ects > 0),
-  grade integer check (grade between 5 and 10),
-  status text not null check (status in ('passed', 'failed', 'planned')),
+  grade integer not null check (grade between 5 and 10),
+  status text not null check (status in ('passed', 'failed')),
   created_at timestamptz not null default now(),
   constraint passed_subject_grade check (
     (status = 'passed' and grade between 6 and 10)
-    or (status = 'failed' and (grade is null or grade = 5))
-    or (status = 'planned' and grade is null)
+    or (status = 'failed' and grade = 5)
   )
 );
 

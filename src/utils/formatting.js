@@ -15,8 +15,7 @@ export const DEGREE_LABELS = {
 
 export const SUBJECT_STATUSES = {
   passed: "Položen",
-  failed: "Pao",
-  planned: "Nedovršen unos"
+  failed: "Pao"
 };
 
 export function formatNumber(value) {
