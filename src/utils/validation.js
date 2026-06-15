@@ -3,7 +3,11 @@ const PASSWORD_LEVELS = ["Slaba", "Srednja", "Jaka", "Vrlo jaka"];
 export function getSubjectStatusFromGrade(grade) {
   const numericGrade = Number(grade);
 
-  if (!Number.isInteger(numericGrade) || numericGrade < 5 || numericGrade > 10) {
+  if (
+    !Number.isInteger(numericGrade) ||
+    numericGrade < 5 ||
+    numericGrade > 10
+  ) {
     return "";
   }
 
@@ -17,7 +21,7 @@ export function normalizeSubjectForm(form) {
     name: form.name.trim(),
     ects: Number(form.ects),
     grade,
-    status: getSubjectStatusFromGrade(grade)
+    status: getSubjectStatusFromGrade(grade),
   };
 }
 
@@ -25,7 +29,7 @@ export function applySubjectGrade(form, grade) {
   return {
     ...form,
     grade,
-    status: getSubjectStatusFromGrade(grade)
+    status: getSubjectStatusFromGrade(grade),
   };
 }
 
@@ -38,7 +42,11 @@ export function validateSubject(values) {
     return "ECTS mora biti veći od 0.";
   }
 
-  if (!Number.isInteger(values.grade) || values.grade < 5 || values.grade > 10) {
+  if (
+    !Number.isInteger(values.grade) ||
+    values.grade < 5 ||
+    values.grade > 10
+  ) {
     return "Ocjena mora biti od 5 do 10.";
   }
 
@@ -58,7 +66,15 @@ export function getPasswordStrength(password, email = "", name = "") {
   const normalizedEmail = email.toLowerCase();
   const emailUser = normalizedEmail.split("@")[0] || "";
   const normalizedName = name.toLowerCase().trim();
-  const weakPatterns = ["123456", "12345678", "password", "qwerty", "abcdef", "111111", "lozinka"];
+  const weakPatterns = [
+    "123456",
+    "12345678",
+    "password",
+    "qwerty",
+    "abcdef",
+    "111111",
+    "lozinka",
+  ];
   let score = 0;
   const issues = [];
 
@@ -74,7 +90,9 @@ export function getPasswordStrength(password, email = "", name = "") {
 
   if (weakPatterns.some((pattern) => normalizedPassword.includes(pattern))) {
     score = Math.min(score, 1);
-    issues.push("Izbjegni jednostavne obrasce kao 123456, password ili qwerty.");
+    issues.push(
+      "Izbjegni jednostavne obrasce kao 123456, password ili qwerty.",
+    );
   }
 
   if (emailUser.length >= 3 && normalizedPassword.includes(emailUser)) {
@@ -82,7 +100,10 @@ export function getPasswordStrength(password, email = "", name = "") {
     issues.push("Lozinka ne bi trebala sadržati email adresu.");
   }
 
-  if (normalizedName.length >= 3 && normalizedPassword.includes(normalizedName)) {
+  if (
+    normalizedName.length >= 3 &&
+    normalizedPassword.includes(normalizedName)
+  ) {
     score = Math.min(score, 1);
     issues.push("Lozinka ne bi trebala sadržati ime.");
   }
@@ -93,11 +114,16 @@ export function getPasswordStrength(password, email = "", name = "") {
     label: PASSWORD_LEVELS[index],
     score: index,
     isWeak: index === 0,
-    issues
+    issues,
   };
 }
 
-export function validatePasswordChange(password, confirmPassword, email = "", name = "") {
+export function validatePasswordChange(
+  password,
+  confirmPassword,
+  email = "",
+  name = "",
+) {
   const strength = getPasswordStrength(password, email, name);
 
   if (password.length < 8) {

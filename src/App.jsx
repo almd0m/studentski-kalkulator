@@ -1,10 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  CheckCircle2,
-  GraduationCap,
-  LogOut,
-  XCircle
-} from "lucide-react";
+import { CheckCircle2, GraduationCap, LogOut, XCircle } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabaseClient";
 import AuthPageShell from "./components/AuthPage";
 import CarriedSubjectsCard from "./components/CarriedSubjectsCard";
@@ -15,18 +10,23 @@ import PasswordStrengthMeter from "./components/PasswordStrengthMeter";
 import RegisterForm from "./components/RegisterForm";
 import SubjectForm from "./components/SubjectForm";
 import SubjectTable from "./components/SubjectTable";
-import { calculateProgress, calculateStats, calculateSuccessIndex, getCarriedSubjects } from "./utils/calculations";
+import {
+  calculateProgress,
+  calculateStats,
+  calculateSuccessIndex,
+  getCarriedSubjects,
+} from "./utils/calculations";
 import { getFriendlyAuthError, logAuthError } from "./utils/authErrors";
 import {
   getPasswordStrength,
   normalizeSubjectForm,
   validatePasswordChange,
-  validateSubject
+  validateSubject,
 } from "./utils/validation";
 import {
   ACADEMIC_YEARS,
   DEGREE_LABELS,
-  formatNumber
+  formatNumber,
 } from "./utils/formatting";
 
 const DASHBOARD_VIEWS = new Set(["overview", "studies", "profile"]);
@@ -42,10 +42,10 @@ const STUDY_TYPES = {
     totalCycleEcts: 180,
     yearsCount: 3,
     semestersCount: 6,
-    defaultSemesterEcts: 30
+    defaultSemesterEcts: 30,
   },
   master_1_year: {
-    label: "Četvorogodišnje studije",
+    label: "Master jednogodišnje studije",
     description: "1 godina, 2 semestra, 60 ECTS + prethodnih 180 ECTS",
     studyLevel: "master",
     programEcts: 60,
@@ -53,7 +53,7 @@ const STUDY_TYPES = {
     totalCycleEcts: 240,
     yearsCount: 1,
     semestersCount: 2,
-    defaultSemesterEcts: 30
+    defaultSemesterEcts: 30,
   },
   master_2_year: {
     label: "Master dvogodišnji",
@@ -64,14 +64,16 @@ const STUDY_TYPES = {
     totalCycleEcts: 300,
     yearsCount: 2,
     semestersCount: 4,
-    defaultSemesterEcts: 30
-  }
+    defaultSemesterEcts: 30,
+  },
 };
 
-const STUDY_TYPE_OPTIONS = Object.entries(STUDY_TYPES).map(([value, config]) => ({
-  value,
-  ...config
-}));
+const STUDY_TYPE_OPTIONS = Object.entries(STUDY_TYPES).map(
+  ([value, config]) => ({
+    value,
+    ...config,
+  }),
+);
 
 function getDashboardViewFromHash() {
   const hashView = window.location.hash.replace("#", "");
@@ -88,7 +90,9 @@ function getStudyTypeId(program) {
   }
 
   if ((program?.study_level || program?.degree_type) === "master") {
-    return Number(program?.total_ects || program?.program_ects) <= 60 ? "master_1_year" : "master_2_year";
+    return Number(program?.total_ects || program?.program_ects) <= 60
+      ? "master_1_year"
+      : "master_2_year";
   }
 
   return "bachelor_3_year";
@@ -109,9 +113,11 @@ export default function App() {
       setLoadingSession(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, nextSession) => {
+        setSession(nextSession);
+      },
+    );
 
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -138,8 +144,9 @@ function SetupNotice() {
         <p className="eyebrow">Konfiguracija</p>
         <h1>Moj Prosjek</h1>
         <p className="muted">
-          Napravi <code>.env</code> fajl prema <code>.env.example</code> i unesi Supabase URL i anon key.
-          Zatim u Supabase SQL editoru pokreni <code>supabase/current_schema.sql</code> za novi setup ili najnoviju
+          Napravi <code>.env</code> fajl prema <code>.env.example</code> i unesi
+          Supabase URL i anon key. Zatim u Supabase SQL editoru pokreni{" "}
+          <code>supabase/current_schema.sql</code> za novi setup ili najnoviju
           migraciju iz <code>supabase/migrations</code>.
         </p>
       </section>
@@ -153,7 +160,9 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState(() => {
-    const accountDeletedMessage = window.localStorage.getItem("accountDeletedMessage");
+    const accountDeletedMessage = window.localStorage.getItem(
+      "accountDeletedMessage",
+    );
     window.localStorage.removeItem("accountDeletedMessage");
     return accountDeletedMessage || "";
   });
@@ -167,7 +176,7 @@ function AuthPage() {
 
     if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
@@ -175,12 +184,18 @@ function AuthPage() {
       }
 
       setBusy(false);
-      setMessage("Ako nalog sa ovom email adresom postoji, poslat je link za resetovanje lozinke.");
+      setMessage(
+        "Ako nalog sa ovom email adresom postoji, poslat je link za resetovanje lozinke.",
+      );
       return;
     }
 
     if (mode === "register") {
-      const passwordError = validatePasswordChange(password, confirmPassword, email);
+      const passwordError = validatePasswordChange(
+        password,
+        confirmPassword,
+        email,
+      );
 
       if (passwordError) {
         setBusy(false);
@@ -203,7 +218,9 @@ function AuthPage() {
     }
 
     if (mode === "register") {
-      setMessage("Nalog je kreiran. Provjerite email i potvrdite registraciju.");
+      setMessage(
+        "Nalog je kreiran. Provjerite email i potvrdite registraciju.",
+      );
     }
   }
 
@@ -260,7 +277,11 @@ function ResetPasswordPage({ session }) {
     event.preventDefault();
     setMessage("");
 
-    const passwordError = validatePasswordChange(password, confirmPassword, session?.user?.email || "");
+    const passwordError = validatePasswordChange(
+      password,
+      confirmPassword,
+      session?.user?.email || "",
+    );
 
     if (passwordError) {
       setMessage(passwordError);
@@ -311,7 +332,9 @@ function ResetPasswordPage({ session }) {
               required
             />
           </label>
-          <button type="submit" disabled={busy}>{busy ? "Cuvam..." : "Promijeni lozinku"}</button>
+          <button type="submit" disabled={busy}>
+            {busy ? "Cuvam..." : "Promijeni lozinku"}
+          </button>
           {message && <p className="form-message">{message}</p>}
         </form>
       </section>
@@ -373,7 +396,7 @@ function StudentApp({ session }) {
           id: session.user.id,
           email: session.user.email,
           full_name: null,
-          onboarding_completed: false
+          onboarding_completed: false,
         })
         .select()
         .single();
@@ -397,16 +420,41 @@ function StudentApp({ session }) {
   }
 
   async function loadDashboardData() {
-    const [programResult, yearsResult, semestersResult, subjectsResult] = await Promise.all([
-      supabase.from("study_programs").select("*").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("academic_years").select("*").order("year_number", { ascending: true }),
-      supabase.from("semesters").select("*").order("semester_number", { ascending: true }),
-      supabase.from("subjects").select("*").order("created_at", { ascending: true })
-    ]);
+    const [programResult, yearsResult, semestersResult, subjectsResult] =
+      await Promise.all([
+        supabase
+          .from("study_programs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("academic_years")
+          .select("*")
+          .order("year_number", { ascending: true }),
+        supabase
+          .from("semesters")
+          .select("*")
+          .order("semester_number", { ascending: true }),
+        supabase
+          .from("subjects")
+          .select("*")
+          .order("created_at", { ascending: true }),
+      ]);
 
-    if (programResult.error || yearsResult.error || semestersResult.error || subjectsResult.error) {
+    if (
+      programResult.error ||
+      yearsResult.error ||
+      semestersResult.error ||
+      subjectsResult.error
+    ) {
       setError(
-        getFriendlyAuthError(programResult.error || yearsResult.error || semestersResult.error || subjectsResult.error)
+        getFriendlyAuthError(
+          programResult.error ||
+            yearsResult.error ||
+            semestersResult.error ||
+            subjectsResult.error,
+        ),
       );
       return;
     }
@@ -502,7 +550,10 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
       return;
     }
 
-    if (!Number.isFinite(Number(semesterEctsDefault)) || Number(semesterEctsDefault) <= 0) {
+    if (
+      !Number.isFinite(Number(semesterEctsDefault)) ||
+      Number(semesterEctsDefault) <= 0
+    ) {
       setError("ECTS po semestru mora biti veći od 0.");
       setBusy(false);
       return;
@@ -511,7 +562,9 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
     const calculatedSemestersCount = semestersCount;
 
     if (!Number.isInteger(semestersCount)) {
-      setError("Ukupni ECTS mora biti djeljiv sa ECTS vrijednošću po semestru.");
+      setError(
+        "Ukupni ECTS mora biti djeljiv sa ECTS vrijednošću po semestru.",
+      );
       setBusy(false);
       return;
     }
@@ -534,7 +587,7 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
         previous_ects: selectedStudyType.previousEcts,
         total_cycle_ects: selectedStudyType.totalCycleEcts,
         years_count: selectedStudyType.yearsCount,
-        default_semester_ects: selectedStudyType.defaultSemesterEcts
+        default_semester_ects: selectedStudyType.defaultSemesterEcts,
       })
       .select()
       .single();
@@ -545,12 +598,15 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
       return;
     }
 
-    const yearsToCreate = Array.from({ length: Math.ceil(semestersCount / 2) }, (_, index) => ({
-      user_id: session.user.id,
-      program_id: createdProgram.id,
-      name: `${index + 1}. godina`,
-      year_number: index + 1
-    }));
+    const yearsToCreate = Array.from(
+      { length: Math.ceil(semestersCount / 2) },
+      (_, index) => ({
+        user_id: session.user.id,
+        program_id: createdProgram.id,
+        name: `${index + 1}. godina`,
+        year_number: index + 1,
+      }),
+    );
 
     const { data: createdYears, error: yearsError } = await supabase
       .from("academic_years")
@@ -563,23 +619,30 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
       return;
     }
 
-    const semestersToCreate = Array.from({ length: semestersCount }, (_, index) => {
-      const semesterNumber = index + 1;
-      const yearNumber = Math.ceil(semesterNumber / 2);
-      const academicYear = createdYears.find((year) => year.year_number === yearNumber);
+    const semestersToCreate = Array.from(
+      { length: semestersCount },
+      (_, index) => {
+        const semesterNumber = index + 1;
+        const yearNumber = Math.ceil(semesterNumber / 2);
+        const academicYear = createdYears.find(
+          (year) => year.year_number === yearNumber,
+        );
 
-      return {
-        user_id: session.user.id,
-        program_id: createdProgram.id,
-        academic_year_id: academicYear.id,
-        academic_year: getStudyYearLabel(academicYear),
-        name: `${semesterNumber}. semestar`,
-        semester_number: semesterNumber,
-        target_ects: Number(semesterEctsDefault)
-      };
-    });
+        return {
+          user_id: session.user.id,
+          program_id: createdProgram.id,
+          academic_year_id: academicYear.id,
+          academic_year: getStudyYearLabel(academicYear),
+          name: `${semesterNumber}. semestar`,
+          semester_number: semesterNumber,
+          target_ects: Number(semesterEctsDefault),
+        };
+      },
+    );
 
-    const { error: semestersError } = await supabase.from("semesters").insert(semestersToCreate);
+    const { error: semestersError } = await supabase
+      .from("semesters")
+      .insert(semestersToCreate);
 
     if (semestersError) {
       setError(getFriendlyAuthError(semestersError));
@@ -611,7 +674,9 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
           <div>
             <p className="eyebrow">Podesavanje profila</p>
             <h1>Kreiraj studijski plan</h1>
-            <p className="muted">Iz ovih podataka automatski nastaju godine studija i semestri.</p>
+            <p className="muted">
+              Iz ovih podataka automatski nastaju godine studija i semestri.
+            </p>
           </div>
           <button className="ghost-button" type="button" onClick={onSignOut}>
             <LogOut size={18} />
@@ -664,7 +729,10 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
 
           <label>
             Tip studija
-            <select value={studyType} onChange={(event) => setStudyType(event.target.value)}>
+            <select
+              value={studyType}
+              onChange={(event) => setStudyType(event.target.value)}
+            >
               {STUDY_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -676,7 +744,10 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
 
           <label hidden>
             Početna godina studija
-            <select value={startAcademicYear} onChange={(event) => setStartAcademicYear(event.target.value)}>
+            <select
+              value={startAcademicYear}
+              onChange={(event) => setStartAcademicYear(event.target.value)}
+            >
               {ACADEMIC_YEARS.map((academicYear) => (
                 <option key={academicYear} value={academicYear}>
                   {academicYear}
@@ -689,7 +760,10 @@ function Onboarding({ session, onComplete, onSignOut, initialError }) {
             <StatCard label="Broj semestara" value={semestersCount} />
             <StatCard label="Broj godina studija" value={totalYears} />
             <StatCard label="ECTS po semestru" value={semesterEctsDefault} />
-            <StatCard label="Ukupni ciklus" value={`${selectedStudyType.totalCycleEcts} ECTS`} />
+            <StatCard
+              label="Ukupni ciklus"
+              value={`${selectedStudyType.totalCycleEcts} ECTS`}
+            />
           </section>
 
           <button type="submit" disabled={busy}>
@@ -718,9 +792,11 @@ function Dashboard({
   setError,
   onSignOut,
   activeView,
-  setActiveView
+  setActiveView,
 }) {
-  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState(academicYears[0]?.id || "");
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState(
+    academicYears[0]?.id || "",
+  );
   const [selectedSemesterId, setSelectedSemesterId] = useState("");
   const [profileForm, setProfileForm] = useState({
     full_name: profile?.full_name || "",
@@ -728,19 +804,19 @@ function Dashboard({
     faculty_name: program?.faculty_name || "",
     program_name: program?.program_name || "",
     study_type: getStudyTypeId(program),
-    start_academic_year: program?.start_academic_year || ACADEMIC_YEARS[0]
+    start_academic_year: program?.start_academic_year || ACADEMIC_YEARS[0],
   });
   const [profileMessage, setProfileMessage] = useState("");
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
   const [passwordMessage, setPasswordMessage] = useState("");
   const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
   const [deleteAccountForm, setDeleteAccountForm] = useState({
     password: "",
-    confirmation: ""
+    confirmation: "",
   });
   const [deleteAccountMessage, setDeleteAccountMessage] = useState("");
   const [deleteAccountBusy, setDeleteAccountBusy] = useState(false);
@@ -748,7 +824,7 @@ function Dashboard({
     name: "",
     ects: "",
     grade: "",
-    status: ""
+    status: "",
   });
   const [subjectMessage, setSubjectMessage] = useState("");
   const [subjectSaving, setSubjectSaving] = useState(false);
@@ -757,53 +833,88 @@ function Dashboard({
     name: "",
     ects: "",
     grade: "",
-    status: ""
+    status: "",
   });
 
   const programStudyType = getStudyTypeId(program);
   const programConfig = STUDY_TYPES[programStudyType];
   const planAlreadyContainsPreviousStudy =
-    programConfig.studyLevel === "master" && semesters.some((semester) => Number(semester.semester_number || 0) > 6);
+    programConfig.studyLevel === "master" &&
+    semesters.some((semester) => Number(semester.semester_number || 0) > 6);
   const plannedSemesters = planAlreadyContainsPreviousStudy
     ? 6 + programConfig.semestersCount
     : programConfig.semestersCount;
   const plannedStudyYears = Math.ceil(plannedSemesters / 2);
-  const visibleAcademicYears = academicYears.filter((year) => Number(year.year_number) <= plannedStudyYears);
+  const visibleAcademicYears = academicYears.filter(
+    (year) => Number(year.year_number) <= plannedStudyYears,
+  );
   const selectedAcademicYear =
-    visibleAcademicYears.find((year) => year.id === selectedAcademicYearId) || visibleAcademicYears[0];
+    visibleAcademicYears.find((year) => year.id === selectedAcademicYearId) ||
+    visibleAcademicYears[0];
   const effectiveSelectedAcademicYearId = selectedAcademicYear?.id || "";
-  const visibleSemesters = semesters.filter((semester) => Number(semester.semester_number || 0) <= plannedSemesters);
+  const visibleSemesters = semesters.filter(
+    (semester) => Number(semester.semester_number || 0) <= plannedSemesters,
+  );
   const yearSemesters = visibleSemesters.filter(
-    (semester) => semester.academic_year_id === effectiveSelectedAcademicYearId
+    (semester) => semester.academic_year_id === effectiveSelectedAcademicYearId,
   );
   const yearSemesterIds = new Set(yearSemesters.map((semester) => semester.id));
-  const yearSubjects = subjects.filter((subject) => yearSemesterIds.has(subject.semester_id));
-  const visibleSemesterIds = new Set(
-    visibleSemesters.map((semester) => semester.id)
+  const yearSubjects = subjects.filter((subject) =>
+    yearSemesterIds.has(subject.semester_id),
   );
-  const visibleSubjects = subjects.filter((subject) => visibleSemesterIds.has(subject.semester_id));
-  const selectedSemester = visibleSemesters.find((semester) => semester.id === selectedSemesterId) || yearSemesters[0];
-  const selectedSubjects = subjects.filter((subject) => subject.semester_id === selectedSemester?.id);
-  const totalStats = useMemo(() => calculateStats(visibleSubjects), [visibleSubjects]);
-  const totalSuccessIndex = useMemo(() => calculateSuccessIndex(visibleSubjects), [visibleSubjects]);
+  const visibleSemesterIds = new Set(
+    visibleSemesters.map((semester) => semester.id),
+  );
+  const visibleSubjects = subjects.filter((subject) =>
+    visibleSemesterIds.has(subject.semester_id),
+  );
+  const selectedSemester =
+    visibleSemesters.find((semester) => semester.id === selectedSemesterId) ||
+    yearSemesters[0];
+  const selectedSubjects = subjects.filter(
+    (subject) => subject.semester_id === selectedSemester?.id,
+  );
+  const totalStats = useMemo(
+    () => calculateStats(visibleSubjects),
+    [visibleSubjects],
+  );
+  const totalSuccessIndex = useMemo(
+    () => calculateSuccessIndex(visibleSubjects),
+    [visibleSubjects],
+  );
   const carriedSubjects = useMemo(
     () => getCarriedSubjects(visibleSubjects, visibleSemesters),
-    [visibleSubjects, visibleSemesters]
+    [visibleSubjects, visibleSemesters],
   );
   const yearStats = useMemo(() => calculateStats(yearSubjects), [yearSubjects]);
-  const yearSuccessIndex = useMemo(() => calculateSuccessIndex(yearSubjects), [yearSubjects]);
-  const semesterStats = useMemo(() => calculateStats(selectedSubjects), [selectedSubjects]);
-  const programStudyLevel = program?.study_level || program?.degree_type || programConfig.studyLevel;
+  const yearSuccessIndex = useMemo(
+    () => calculateSuccessIndex(yearSubjects),
+    [yearSubjects],
+  );
+  const semesterStats = useMemo(
+    () => calculateStats(selectedSubjects),
+    [selectedSubjects],
+  );
+  const programStudyLevel =
+    program?.study_level || program?.degree_type || programConfig.studyLevel;
   const programEcts = programConfig.programEcts;
   const totalCycleEcts = programConfig.totalCycleEcts;
-  const previousEcts = planAlreadyContainsPreviousStudy ? 0 : programConfig.previousEcts;
+  const previousEcts = planAlreadyContainsPreviousStudy
+    ? 0
+    : programConfig.previousEcts;
   const cycleEarnedEcts = previousEcts + totalStats.earnedEcts;
   const progress = calculateProgress(cycleEarnedEcts, totalCycleEcts);
   const greetingName = profile?.full_name || session.user.email;
-  const newPasswordStrength = getPasswordStrength(passwordForm.password, session.user.email, profile?.full_name || "");
+  const newPasswordStrength = getPasswordStrength(
+    passwordForm.password,
+    session.user.email,
+    profile?.full_name || "",
+  );
 
   useEffect(() => {
-    const currentStillVisible = visibleAcademicYears.some((year) => year.id === selectedAcademicYearId);
+    const currentStillVisible = visibleAcademicYears.some(
+      (year) => year.id === selectedAcademicYearId,
+    );
 
     if (!currentStillVisible) {
       setSelectedAcademicYearId(visibleAcademicYears[0]?.id || "");
@@ -811,7 +922,9 @@ function Dashboard({
   }, [visibleAcademicYears, selectedAcademicYearId]);
 
   useEffect(() => {
-    const currentStillVisible = yearSemesters.some((semester) => semester.id === selectedSemesterId);
+    const currentStillVisible = yearSemesters.some(
+      (semester) => semester.id === selectedSemesterId,
+    );
 
     if (!currentStillVisible) {
       setSelectedSemesterId(yearSemesters[0]?.id || "");
@@ -821,7 +934,7 @@ function Dashboard({
   function updateProfileStudyType(nextStudyType) {
     setProfileForm({
       ...profileForm,
-      study_type: nextStudyType
+      study_type: nextStudyType,
     });
   }
 
@@ -829,38 +942,50 @@ function Dashboard({
     const config = STUDY_TYPES[nextStudyType];
     const currentStudyType = getStudyTypeId(program);
     const addingMasterAfterBachelor =
-      currentStudyType === "bachelor_3_year" && config.studyLevel === "master" && semesters.length >= 6;
+      currentStudyType === "bachelor_3_year" &&
+      config.studyLevel === "master" &&
+      semesters.length >= 6;
     const semesterEctsDefault = config.defaultSemesterEcts;
     const targetSemesters = addingMasterAfterBachelor
       ? semesters.length + config.semestersCount
       : Math.max(semesters.length, config.semestersCount);
 
     if (!Number.isInteger(targetSemesters)) {
-      return { error: "Ukupni ECTS mora biti djeljiv sa ECTS vrijednošću po semestru." };
+      return {
+        error: "Ukupni ECTS mora biti djeljiv sa ECTS vrijednošću po semestru.",
+      };
     }
 
     if (targetSemesters < semesters.length) {
       return {
         error:
-          "Ne možeš smanjiti ukupan ECTS ispod već kreiranih semestara. Smanjenje plana bi zahtijevalo ručno brisanje podataka."
+          "Ne možeš smanjiti ukupan ECTS ispod već kreiranih semestara. Smanjenje plana bi zahtijevalo ručno brisanje podataka.",
       };
     }
 
     const targetYears = Math.ceil(targetSemesters / 2);
-    const existingYearNumbers = new Set(academicYears.map((year) => Number(year.year_number)));
-    const missingYears = Array.from({ length: targetYears }, (_, index) => index + 1)
+    const existingYearNumbers = new Set(
+      academicYears.map((year) => Number(year.year_number)),
+    );
+    const missingYears = Array.from(
+      { length: targetYears },
+      (_, index) => index + 1,
+    )
       .filter((yearNumber) => !existingYearNumbers.has(yearNumber))
       .map((yearNumber) => ({
         user_id: session.user.id,
         program_id: program.id,
         name: `${yearNumber}. godina`,
-        year_number: yearNumber
+        year_number: yearNumber,
       }));
 
     let createdYears = [];
 
     if (missingYears.length > 0) {
-      const { data, error: yearsError } = await supabase.from("academic_years").insert(missingYears).select();
+      const { data, error: yearsError } = await supabase
+        .from("academic_years")
+        .insert(missingYears)
+        .select();
 
       if (yearsError) {
         return { error: getFriendlyAuthError(yearsError) };
@@ -870,12 +995,19 @@ function Dashboard({
     }
 
     const allYears = [...academicYears, ...createdYears];
-    const existingSemesterNumbers = new Set(semesters.map((semester) => Number(semester.semester_number)));
-    const missingSemesters = Array.from({ length: targetSemesters }, (_, index) => index + 1)
+    const existingSemesterNumbers = new Set(
+      semesters.map((semester) => Number(semester.semester_number)),
+    );
+    const missingSemesters = Array.from(
+      { length: targetSemesters },
+      (_, index) => index + 1,
+    )
       .filter((semesterNumber) => !existingSemesterNumbers.has(semesterNumber))
       .map((semesterNumber) => {
         const yearNumber = Math.ceil(semesterNumber / 2);
-        const studyYear = allYears.find((year) => Number(year.year_number) === yearNumber);
+        const studyYear = allYears.find(
+          (year) => Number(year.year_number) === yearNumber,
+        );
 
         return {
           user_id: session.user.id,
@@ -884,14 +1016,17 @@ function Dashboard({
           academic_year: getStudyYearLabel(studyYear),
           name: `${semesterNumber}. semestar`,
           semester_number: semesterNumber,
-          target_ects: semesterEctsDefault
+          target_ects: semesterEctsDefault,
         };
       });
 
     let createdSemesters = [];
 
     if (missingSemesters.length > 0) {
-      const { data, error: semestersError } = await supabase.from("semesters").insert(missingSemesters).select();
+      const { data, error: semestersError } = await supabase
+        .from("semesters")
+        .insert(missingSemesters)
+        .select();
 
       if (semestersError) {
         return { error: getFriendlyAuthError(semestersError) };
@@ -900,7 +1035,12 @@ function Dashboard({
       createdSemesters = data || [];
     }
 
-    return { targetSemesters, createdYears, createdSemesters, addingMasterAfterBachelor };
+    return {
+      targetSemesters,
+      createdYears,
+      createdSemesters,
+      addingMasterAfterBachelor,
+    };
   }
 
   async function updateProfileAndProgram(event) {
@@ -941,19 +1081,23 @@ function Dashboard({
           total_semesters: planExpansion.targetSemesters,
           semester_ects_default: selectedConfig.defaultSemesterEcts,
           program_ects: selectedConfig.programEcts,
-          previous_ects: planExpansion.addingMasterAfterBachelor ? 0 : selectedConfig.previousEcts,
+          previous_ects: planExpansion.addingMasterAfterBachelor
+            ? 0
+            : selectedConfig.previousEcts,
           total_cycle_ects: selectedConfig.totalCycleEcts,
           years_count: Math.ceil(planExpansion.targetSemesters / 2),
           default_semester_ects: selectedConfig.defaultSemesterEcts,
-          start_academic_year: profileForm.start_academic_year
+          start_academic_year: profileForm.start_academic_year,
         })
         .eq("id", program.id)
         .select()
-        .single()
+        .single(),
     ]);
 
     if (profileResult.error || programResult.error) {
-      setError(getFriendlyAuthError(profileResult.error || programResult.error));
+      setError(
+        getFriendlyAuthError(profileResult.error || programResult.error),
+      );
       return;
     }
 
@@ -961,23 +1105,19 @@ function Dashboard({
     setProgram(programResult.data);
     if (planExpansion.createdYears.length > 0) {
       setAcademicYears((current) =>
-        [...current, ...planExpansion.createdYears].sort((a, b) => Number(a.year_number) - Number(b.year_number))
+        [...current, ...planExpansion.createdYears].sort(
+          (a, b) => Number(a.year_number) - Number(b.year_number),
+        ),
       );
     }
     if (planExpansion.createdSemesters.length > 0) {
       setSemesters((current) =>
         [...current, ...planExpansion.createdSemesters].sort(
-          (a, b) => Number(a.semester_number) - Number(b.semester_number)
-        )
+          (a, b) => Number(a.semester_number) - Number(b.semester_number),
+        ),
       );
     }
     setProfileMessage("Profil je sačuvan.");
-  }
-
-  function unusedProfileMessagePatch() {
-    if (planExpansion.createdSemesters.length > 0) {
-      setProfileMessage(`Profil je sačuvan. Dodano je ${planExpansion.createdSemesters.length} novih semestara.`);
-    }
   }
 
   async function changePassword(event) {
@@ -994,7 +1134,7 @@ function Dashboard({
       passwordForm.password,
       passwordForm.confirmPassword,
       session.user.email,
-      profile?.full_name || ""
+      profile?.full_name || "",
     );
 
     if (passwordError) {
@@ -1002,10 +1142,11 @@ function Dashboard({
       return;
     }
 
-    const { error: currentPasswordError } = await supabase.auth.signInWithPassword({
-      email: session.user.email,
-      password: passwordForm.currentPassword
-    });
+    const { error: currentPasswordError } =
+      await supabase.auth.signInWithPassword({
+        email: session.user.email,
+        password: passwordForm.currentPassword,
+      });
 
     if (currentPasswordError) {
       setPasswordMessage("Trenutna lozinka nije ispravna.");
@@ -1013,7 +1154,9 @@ function Dashboard({
       return;
     }
 
-    const { error: passwordErrorResponse } = await supabase.auth.updateUser({ password: passwordForm.password });
+    const { error: passwordErrorResponse } = await supabase.auth.updateUser({
+      password: passwordForm.password,
+    });
 
     if (passwordErrorResponse) {
       setPasswordMessage(getFriendlyAuthError(passwordErrorResponse));
@@ -1042,22 +1185,30 @@ function Dashboard({
 
   async function sendDeleteAccountResetLink() {
     setDeleteAccountMessage("");
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(session.user.email, {
-      redirectTo: `${window.location.origin}/reset-password`
-    });
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      session.user.email,
+      {
+        redirectTo: `${window.location.origin}/reset-password`,
+      },
+    );
 
     if (resetError) {
       logAuthError(resetError);
     }
 
-    setDeleteAccountMessage("Ako nalog sa ovom email adresom postoji, poslat je link za resetovanje lozinke.");
+    setDeleteAccountMessage(
+      "Ako nalog sa ovom email adresom postoji, poslat je link za resetovanje lozinke.",
+    );
   }
 
   async function deleteAccount(event) {
     event.preventDefault();
     setDeleteAccountMessage("");
 
-    if (!deleteAccountForm.password || deleteAccountForm.confirmation !== "OBRIŠI") {
+    if (
+      !deleteAccountForm.password ||
+      deleteAccountForm.confirmation !== "OBRIŠI"
+    ) {
       return;
     }
 
@@ -1065,7 +1216,7 @@ function Dashboard({
 
     const { error: passwordError } = await supabase.auth.signInWithPassword({
       email: session.user.email,
-      password: deleteAccountForm.password
+      password: deleteAccountForm.password,
     });
 
     if (passwordError) {
@@ -1075,9 +1226,12 @@ function Dashboard({
       return;
     }
 
-    const { error: deleteError } = await supabase.functions.invoke("delete-account", {
-      body: {}
-    });
+    const { error: deleteError } = await supabase.functions.invoke(
+      "delete-account",
+      {
+        body: {},
+      },
+    );
 
     if (deleteError) {
       logAuthError(deleteError);
@@ -1091,7 +1245,10 @@ function Dashboard({
     setAcademicYears([]);
     setSemesters([]);
     setSubjects([]);
-    window.localStorage.setItem("accountDeletedMessage", "Nalog je uspješno obrisan.");
+    window.localStorage.setItem(
+      "accountDeletedMessage",
+      "Nalog je uspješno obrisan.",
+    );
     await supabase.auth.signOut();
     setDeleteAccountBusy(false);
   }
@@ -1120,7 +1277,7 @@ function Dashboard({
       .insert({
         user_id: session.user.id,
         semester_id: selectedSemester.id,
-        ...values
+        ...values,
       })
       .select()
       .single();
@@ -1142,7 +1299,7 @@ function Dashboard({
       name: subject.name,
       ects: String(subject.ects),
       grade: subject.grade ?? "",
-      status: subject.status
+      status: subject.status,
     });
   }
 
@@ -1177,7 +1334,9 @@ function Dashboard({
       return;
     }
 
-    setSubjects((current) => current.map((subject) => (subject.id === subjectId ? data : subject)));
+    setSubjects((current) =>
+      current.map((subject) => (subject.id === subjectId ? data : subject)),
+    );
     cancelEditingSubject();
     setSubjectMessage("Predmet je uspješno izmijenjen.");
   }
@@ -1185,7 +1344,10 @@ function Dashboard({
   async function deleteSubject(subjectId) {
     setSubjectMessage("");
     setSubjectSaving(true);
-    const { error: deleteError } = await supabase.from("subjects").delete().eq("id", subjectId);
+    const { error: deleteError } = await supabase
+      .from("subjects")
+      .delete()
+      .eq("id", subjectId);
     setSubjectSaving(false);
 
     if (deleteError) {
@@ -1193,20 +1355,34 @@ function Dashboard({
       return;
     }
 
-    setSubjects((current) => current.filter((subject) => subject.id !== subjectId));
+    setSubjects((current) =>
+      current.filter((subject) => subject.id !== subjectId),
+    );
     setSubjectMessage("Predmet je obrisan.");
   }
 
   const selectedYear = selectedAcademicYear;
-  const selectedStudyYearLabel = selectedYear ? getStudyYearLabel(selectedYear) : "Godina studija";
-  const semesterTargetEcts = Number(selectedSemester?.target_ects || program?.semester_ects_default || 0);
-  const semesterEnteredEcts = selectedSubjects.reduce((sum, subject) => sum + Number(subject.ects || 0), 0);
+  const selectedStudyYearLabel = selectedYear
+    ? getStudyYearLabel(selectedYear)
+    : "Godina studija";
+  const semesterTargetEcts = Number(
+    selectedSemester?.target_ects || program?.semester_ects_default || 0,
+  );
+  const semesterEnteredEcts = selectedSubjects.reduce(
+    (sum, subject) => sum + Number(subject.ects || 0),
+    0,
+  );
   const semesterEctsDifference = semesterEnteredEcts - semesterTargetEcts;
-  const semesterStatus = semesterStats.earnedEcts >= semesterTargetEcts ? "Završen" : "Nepotpun";
+  const semesterStatus =
+    semesterStats.earnedEcts >= semesterTargetEcts ? "Završen" : "Nepotpun";
 
   const overviewYears = visibleAcademicYears.map((year) => {
-    const ids = visibleSemesters.filter((semester) => semester.academic_year_id === year.id).map((semester) => semester.id);
-    const yearOverviewSubjects = subjects.filter((subject) => ids.includes(subject.semester_id));
+    const ids = visibleSemesters
+      .filter((semester) => semester.academic_year_id === year.id)
+      .map((semester) => semester.id);
+    const yearOverviewSubjects = subjects.filter((subject) =>
+      ids.includes(subject.semester_id),
+    );
     const stats = calculateStats(yearOverviewSubjects);
     const successIndex = calculateSuccessIndex(yearOverviewSubjects);
 
@@ -1214,13 +1390,18 @@ function Dashboard({
       year,
       stats,
       successIndex,
-      semesterCount: ids.length
+      semesterCount: ids.length,
     };
   });
 
   if (activeView === "overview") {
     return (
-      <MainLayout activeView={activeView} onViewChange={setActiveView} onSignOut={onSignOut} userEmail={session.user.email}>
+      <MainLayout
+        activeView={activeView}
+        onViewChange={setActiveView}
+        onSignOut={onSignOut}
+        userEmail={session.user.email}
+      >
         {error && <p className="alert">{error}</p>}
 
         <section className="panel overview-hero">
@@ -1228,8 +1409,8 @@ function Dashboard({
             <p className="eyebrow">Pregled prosjeka</p>
             <h2>Dobrodošao, {greetingName}</h2>
             <p className="muted">
-              Ovo je kratki pregled tvog studijskog napretka. Detalje semestara i predmete uređuješ u sekciji
-              Moje studije.
+              Ovo je kratki pregled tvog studijskog napretka. Detalje semestara
+              i predmete uređuješ u sekciji Moje studije.
             </p>
           </div>
           <button type="button" onClick={() => setActiveView("studies")}>
@@ -1238,7 +1419,10 @@ function Dashboard({
         </section>
 
         <section className="summary-grid">
-          <StatCard label="Ukupni prosjek" value={totalStats.average ? totalStats.average.toFixed(2) : "-"} />
+          <StatCard
+            label="Ukupni prosjek"
+            value={totalStats.average ? totalStats.average.toFixed(2) : "-"}
+          />
           <StatCard
             label="Osvojeno ECTS / ukupno ECTS"
             value={`${formatNumber(cycleEarnedEcts)} / ${formatNumber(totalCycleEcts)}`}
@@ -1248,10 +1432,17 @@ function Dashboard({
           <StatCard label="Semestri" value={plannedSemesters} />
           <StatCard
             label="Indeks uspješnosti"
-            value={totalSuccessIndex === null ? "Nema podataka" : totalSuccessIndex.toFixed(2)}
+            value={
+              totalSuccessIndex === null
+                ? "Nema podataka"
+                : totalSuccessIndex.toFixed(2)
+            }
             note="Orijentacioni indeks za dom, stipendije i studentske kredite. Nepoložen predmet ne dodaje ocjenu u zbir, ali njegovi ECTS ulaze u obračun."
           />
-          <StatCard label="Nepoloženo ECTS" value={formatNumber(totalStats.failedEcts)} />
+          <StatCard
+            label="Nepoloženo ECTS"
+            value={formatNumber(totalStats.failedEcts)}
+          />
         </section>
 
         <section className="panel">
@@ -1279,33 +1470,47 @@ function Dashboard({
             <p className="empty">Još nema godina studija ili semestara.</p>
           ) : (
             <div className="overview-year-list">
-              {overviewYears.map(({ year, stats, successIndex, semesterCount }) => (
-                <article className="overview-year-card" key={year.id}>
-                  <div>
-                    <strong>{getStudyYearLabel(year)}</strong>
-                    <span>{semesterCount} semestara</span>
-                  </div>
-                  <small>
-                    Prosjek {stats.average ? stats.average.toFixed(2) : "-"} · {formatNumber(stats.earnedEcts)} ECTS
-                  </small>
-                  <small>
-                    Indeks uspješnosti {successIndex === null ? "Nema podataka" : successIndex.toFixed(2)} ·
-                    Nepoloženo {formatNumber(stats.failedEcts)} ECTS
-                  </small>
-                </article>
-              ))}
+              {overviewYears.map(
+                ({ year, stats, successIndex, semesterCount }) => (
+                  <article className="overview-year-card" key={year.id}>
+                    <div>
+                      <strong>{getStudyYearLabel(year)}</strong>
+                      <span>{semesterCount} semestara</span>
+                    </div>
+                    <small>
+                      Prosjek {stats.average ? stats.average.toFixed(2) : "-"} ·{" "}
+                      {formatNumber(stats.earnedEcts)} ECTS
+                    </small>
+                    <small>
+                      Indeks uspješnosti{" "}
+                      {successIndex === null
+                        ? "Nema podataka"
+                        : successIndex.toFixed(2)}{" "}
+                      · Nepoloženo {formatNumber(stats.failedEcts)} ECTS
+                    </small>
+                  </article>
+                ),
+              )}
             </div>
           )}
         </section>
 
-        <CarriedSubjectsCard carriedSubjects={carriedSubjects} subjects={visibleSubjects} />
+        <CarriedSubjectsCard
+          carriedSubjects={carriedSubjects}
+          subjects={visibleSubjects}
+        />
       </MainLayout>
     );
   }
 
   if (activeView === "profile") {
     return (
-      <MainLayout activeView={activeView} onViewChange={setActiveView} onSignOut={onSignOut} userEmail={session.user.email}>
+      <MainLayout
+        activeView={activeView}
+        onViewChange={setActiveView}
+        onSignOut={onSignOut}
+        userEmail={session.user.email}
+      >
         {error && <p className="alert">{error}</p>}
 
         <section className="panel">
@@ -1317,33 +1522,56 @@ function Dashboard({
           </div>
           <p className="muted profile-email">Email: {session.user.email}</p>
 
-          <form className="stack-form profile-form" onSubmit={updateProfileAndProgram}>
+          <form
+            className="stack-form profile-form"
+            onSubmit={updateProfileAndProgram}
+          >
             <label>
               Ime i prezime
               <input
                 value={profileForm.full_name}
-                onChange={(event) => setProfileForm({ ...profileForm, full_name: event.target.value })}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    full_name: event.target.value,
+                  })
+                }
               />
             </label>
             <label>
               Univerzitet
               <input
                 value={profileForm.university_name}
-                onChange={(event) => setProfileForm({ ...profileForm, university_name: event.target.value })}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    university_name: event.target.value,
+                  })
+                }
               />
             </label>
             <label>
               Fakultet
               <input
                 value={profileForm.faculty_name}
-                onChange={(event) => setProfileForm({ ...profileForm, faculty_name: event.target.value })}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    faculty_name: event.target.value,
+                  })
+                }
               />
             </label>
             <label>
               Studijski program
               <input
                 value={profileForm.program_name}
-                onChange={(event) => setProfileForm({ ...profileForm, program_name: event.target.value })}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    program_name: event.target.value,
+                  })
+                }
               />
             </label>
             <label>
@@ -1363,7 +1591,12 @@ function Dashboard({
               Početna godina studija
               <select
                 value={profileForm.start_academic_year}
-                onChange={(event) => setProfileForm({ ...profileForm, start_academic_year: event.target.value })}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    start_academic_year: event.target.value,
+                  })
+                }
               >
                 {ACADEMIC_YEARS.map((year) => (
                   <option key={year} value={year}>
@@ -1373,7 +1606,9 @@ function Dashboard({
               </select>
             </label>
             <button type="submit">Sačuvaj profil</button>
-            {profileMessage && <p className="form-message success">{profileMessage}</p>}
+            {profileMessage && (
+              <p className="form-message success">{profileMessage}</p>
+            )}
           </form>
         </section>
 
@@ -1390,7 +1625,12 @@ function Dashboard({
               <input
                 type="password"
                 value={passwordForm.currentPassword}
-                onChange={(event) => setPasswordForm({ ...passwordForm, currentPassword: event.target.value })}
+                onChange={(event) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    currentPassword: event.target.value,
+                  })
+                }
               />
             </label>
             <label>
@@ -1398,7 +1638,12 @@ function Dashboard({
               <input
                 type="password"
                 value={passwordForm.password}
-                onChange={(event) => setPasswordForm({ ...passwordForm, password: event.target.value })}
+                onChange={(event) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    password: event.target.value,
+                  })
+                }
               />
             </label>
             <PasswordStrengthMeter strength={newPasswordStrength} />
@@ -1407,11 +1652,18 @@ function Dashboard({
               <input
                 type="password"
                 value={passwordForm.confirmPassword}
-                onChange={(event) => setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })}
+                onChange={(event) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    confirmPassword: event.target.value,
+                  })
+                }
               />
             </label>
             <button type="submit">Promijeni lozinku</button>
-            {passwordMessage && <p className="form-message success">{passwordMessage}</p>}
+            {passwordMessage && (
+              <p className="form-message success">{passwordMessage}</p>
+            )}
           </form>
         </section>
 
@@ -1423,15 +1675,24 @@ function Dashboard({
             </div>
           </div>
           <p className="muted">
-            Ova akcija trajno briše nalog i sve podatke povezane sa njim. Brisanje nije moguće poništiti.
+            Ova akcija trajno briše nalog i sve podatke povezane sa njim.
+            Brisanje nije moguće poništiti.
           </p>
-          <button className="danger-button" type="button" onClick={openDeleteAccountModal}>
+          <button
+            className="danger-button"
+            type="button"
+            onClick={openDeleteAccountModal}
+          >
             Obriši nalog
           </button>
         </section>
 
         {deleteAccountModalOpen && (
-          <div className="modal-layer" role="presentation" onMouseDown={closeDeleteAccountModal}>
+          <div
+            className="modal-layer"
+            role="presentation"
+            onMouseDown={closeDeleteAccountModal}
+          >
             <section
               className="modal-card delete-account-modal"
               role="dialog"
@@ -1446,7 +1707,8 @@ function Dashboard({
                 </div>
               </div>
               <p className="alert">
-                Trajno će se obrisati nalog, profil, studijski program, akademske godine, semestri i predmeti.
+                Trajno će se obrisati nalog, profil, studijski program,
+                akademske godine, semestri i predmeti.
               </p>
               <form className="stack-form" onSubmit={deleteAccount}>
                 <label>
@@ -1455,12 +1717,19 @@ function Dashboard({
                     type="password"
                     value={deleteAccountForm.password}
                     onChange={(event) =>
-                      setDeleteAccountForm({ ...deleteAccountForm, password: event.target.value })
+                      setDeleteAccountForm({
+                        ...deleteAccountForm,
+                        password: event.target.value,
+                      })
                     }
                     autoFocus
                   />
                 </label>
-                <button className="link-button" type="button" onClick={sendDeleteAccountResetLink}>
+                <button
+                  className="link-button"
+                  type="button"
+                  onClick={sendDeleteAccountResetLink}
+                >
                   Zaboravili ste lozinku?
                 </button>
                 <label>
@@ -1468,13 +1737,23 @@ function Dashboard({
                   <input
                     value={deleteAccountForm.confirmation}
                     onChange={(event) =>
-                      setDeleteAccountForm({ ...deleteAccountForm, confirmation: event.target.value })
+                      setDeleteAccountForm({
+                        ...deleteAccountForm,
+                        confirmation: event.target.value,
+                      })
                     }
                   />
                 </label>
-                {deleteAccountMessage && <p className="form-message">{deleteAccountMessage}</p>}
+                {deleteAccountMessage && (
+                  <p className="form-message">{deleteAccountMessage}</p>
+                )}
                 <div className="modal-actions">
-                  <button className="ghost-button" type="button" onClick={closeDeleteAccountModal} disabled={deleteAccountBusy}>
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={closeDeleteAccountModal}
+                    disabled={deleteAccountBusy}
+                  >
                     Odustani
                   </button>
                   <button
@@ -1498,7 +1777,12 @@ function Dashboard({
   }
 
   return (
-    <MainLayout activeView={activeView} onViewChange={setActiveView} onSignOut={onSignOut} userEmail={session.user.email}>
+    <MainLayout
+      activeView={activeView}
+      onViewChange={setActiveView}
+      onSignOut={onSignOut}
+      userEmail={session.user.email}
+    >
       {error && <p className="alert">{error}</p>}
 
       {program && (
@@ -1507,9 +1791,15 @@ function Dashboard({
             <p className="eyebrow">Studijski program</p>
             <h2>{program.program_name || DEGREE_LABELS[programStudyLevel]}</h2>
             <div className="program-details">
-              <span>{program.university_name || "Univerzitet nije unesen"}</span>
+              <span>
+                {program.university_name || "Univerzitet nije unesen"}
+              </span>
               <span>{program.faculty_name || "Fakultet nije unesen"}</span>
-              <span>{programConfig.label || DEGREE_LABELS[programStudyLevel] || programStudyLevel}</span>
+              <span>
+                {programConfig.label ||
+                  DEGREE_LABELS[programStudyLevel] ||
+                  programStudyLevel}
+              </span>
               <span>Početak studija {program.start_academic_year}</span>
               <span>{programEcts} ECTS program</span>
               <span>{totalCycleEcts} ECTS ukupni ciklus</span>
@@ -1526,7 +1816,10 @@ function Dashboard({
             <p className="eyebrow">Moje studije</p>
             <h2>Godine studija</h2>
           </div>
-          <strong>Prosjek godine studija: {yearStats.average ? yearStats.average.toFixed(2) : "-"}</strong>
+          <strong>
+            Prosjek godine studija:{" "}
+            {yearStats.average ? yearStats.average.toFixed(2) : "-"}
+          </strong>
         </div>
 
         {visibleAcademicYears.length === 0 ? (
@@ -1547,13 +1840,26 @@ function Dashboard({
             </div>
 
             <div className="summary-grid compact">
-              <StatCard label="Osvojeno ECTS" value={formatNumber(yearStats.earnedEcts)} />
-              <StatCard label="Ukupno prijavljeno ECTS" value={formatNumber(yearStats.attemptedEcts)} />
+              <StatCard
+                label="Osvojeno ECTS"
+                value={formatNumber(yearStats.earnedEcts)}
+              />
+              <StatCard
+                label="Ukupno prijavljeno ECTS"
+                value={formatNumber(yearStats.attemptedEcts)}
+              />
               <StatCard
                 label="Indeks uspješnosti"
-                value={yearSuccessIndex === null ? "Nema podataka" : yearSuccessIndex.toFixed(2)}
+                value={
+                  yearSuccessIndex === null
+                    ? "Nema podataka"
+                    : yearSuccessIndex.toFixed(2)
+                }
               />
-              <StatCard label="Nepoloženo ECTS" value={formatNumber(yearStats.failedEcts)} />
+              <StatCard
+                label="Nepoloženo ECTS"
+                value={formatNumber(yearStats.failedEcts)}
+              />
             </div>
 
             {yearSemesters.length === 0 ? (
@@ -1561,10 +1867,13 @@ function Dashboard({
             ) : (
               <div className="semester-grid">
                 {yearSemesters.map((semester) => {
-                  const semesterSubjects = subjects.filter((subject) => subject.semester_id === semester.id);
+                  const semesterSubjects = subjects.filter(
+                    (subject) => subject.semester_id === semester.id,
+                  );
                   const stats = calculateStats(semesterSubjects);
                   const target = Number(semester.target_ects || 0);
-                  const status = stats.earnedEcts >= target ? "Završen" : "Nepotpun";
+                  const status =
+                    stats.earnedEcts >= target ? "Završen" : "Nepotpun";
 
                   return (
                     <button
@@ -1575,9 +1884,12 @@ function Dashboard({
                     >
                       <span>Status: {status}</span>
                       <strong>{semester.name}</strong>
-                      <small>Prosjek {stats.average ? stats.average.toFixed(2) : "-"}</small>
                       <small>
-                        {formatNumber(stats.earnedEcts)} / {formatNumber(target)} ECTS · Nepoloženo{" "}
+                        Prosjek {stats.average ? stats.average.toFixed(2) : "-"}
+                      </small>
+                      <small>
+                        {formatNumber(stats.earnedEcts)} /{" "}
+                        {formatNumber(target)} ECTS · Nepoloženo{" "}
                         {formatNumber(stats.failedEcts)} ECTS
                       </small>
                     </button>
@@ -1600,23 +1912,34 @@ function Dashboard({
           </div>
 
           <section className="summary-grid compact">
-            <StatCard label="Prosjek" value={semesterStats.average ? semesterStats.average.toFixed(2) : "-"} />
+            <StatCard
+              label="Prosjek"
+              value={
+                semesterStats.average ? semesterStats.average.toFixed(2) : "-"
+              }
+            />
             <StatCard
               label="Osvojeno ECTS / ciljni ECTS"
               value={`${formatNumber(semesterStats.earnedEcts)} / ${formatNumber(semesterTargetEcts)}`}
             />
-            <StatCard label="Nepoloženo ECTS" value={formatNumber(semesterStats.failedEcts)} />
-            <StatCard label="Ukupno prijavljeno ECTS" value={formatNumber(semesterStats.attemptedEcts)} />
+            <StatCard
+              label="Nepoloženo ECTS"
+              value={formatNumber(semesterStats.failedEcts)}
+            />
+            <StatCard
+              label="Ukupno prijavljeno ECTS"
+              value={formatNumber(semesterStats.attemptedEcts)}
+            />
           </section>
 
           {semesterEctsDifference !== 0 && semesterTargetEcts > 0 && (
             <p className="form-message warning">
               {semesterEctsDifference < 0
                 ? `Uneseno: ${formatNumber(semesterEnteredEcts)} / ${formatNumber(
-                    semesterTargetEcts
+                    semesterTargetEcts,
                   )} ECTS. Nedostaje: ${formatNumber(Math.abs(semesterEctsDifference))} ECTS.`
                 : `Uneseno: ${formatNumber(semesterEnteredEcts)} / ${formatNumber(
-                    semesterTargetEcts
+                    semesterTargetEcts,
                   )} ECTS. Prekoračenje: ${formatNumber(semesterEctsDifference)} ECTS.`}
             </p>
           )}
@@ -1628,7 +1951,9 @@ function Dashboard({
             saving={subjectSaving}
           />
 
-          {subjectMessage && <p className="form-message success">{subjectMessage}</p>}
+          {subjectMessage && (
+            <p className="form-message success">{subjectMessage}</p>
+          )}
 
           <SubjectTable
             subjects={selectedSubjects}
@@ -1674,9 +1999,15 @@ function Dashboard({
             <p className="eyebrow">Studijski program</p>
             <h2>{program.program_name || DEGREE_LABELS[programStudyLevel]}</h2>
             <div className="program-details">
-              <span>{program.university_name || "Univerzitet nije unesen"}</span>
+              <span>
+                {program.university_name || "Univerzitet nije unesen"}
+              </span>
               <span>{program.faculty_name || "Fakultet nije unesen"}</span>
-              <span>{programConfig.label || DEGREE_LABELS[programStudyLevel] || programStudyLevel}</span>
+              <span>
+                {programConfig.label ||
+                  DEGREE_LABELS[programStudyLevel] ||
+                  programStudyLevel}
+              </span>
               <span>Početak studija {program.start_academic_year}</span>
               <span>{programEcts} ECTS program</span>
               <span>{totalCycleEcts} ECTS ukupni ciklus</span>
@@ -1688,11 +2019,26 @@ function Dashboard({
       )}
 
       <section className="summary-grid">
-        <StatCard label="Ukupni prosjek studija" value={totalStats.average ? totalStats.average.toFixed(2) : "-"} />
-        <StatCard label="Ukupno osvojeno ECTS" value={formatNumber(totalStats.earnedEcts)} />
-        <StatCard label="Ukupni ciklus ECTS" value={formatNumber(totalCycleEcts)} />
-        <StatCard label="Nepoloženo ECTS" value={formatNumber(totalStats.failedEcts)} />
-        <StatCard label="Procenat zavrsenih studija" value={`${progress.toFixed(0)}%`} />
+        <StatCard
+          label="Ukupni prosjek studija"
+          value={totalStats.average ? totalStats.average.toFixed(2) : "-"}
+        />
+        <StatCard
+          label="Ukupno osvojeno ECTS"
+          value={formatNumber(totalStats.earnedEcts)}
+        />
+        <StatCard
+          label="Ukupni ciklus ECTS"
+          value={formatNumber(totalCycleEcts)}
+        />
+        <StatCard
+          label="Nepoloženo ECTS"
+          value={formatNumber(totalStats.failedEcts)}
+        />
+        <StatCard
+          label="Procenat zavrsenih studija"
+          value={`${progress.toFixed(0)}%`}
+        />
       </section>
 
       <section className="panel">
@@ -1707,28 +2053,48 @@ function Dashboard({
             Ime i prezime
             <input
               value={profileForm.full_name}
-              onChange={(event) => setProfileForm({ ...profileForm, full_name: event.target.value })}
+              onChange={(event) =>
+                setProfileForm({
+                  ...profileForm,
+                  full_name: event.target.value,
+                })
+              }
             />
           </label>
           <label>
             Univerzitet
             <input
               value={profileForm.university_name}
-              onChange={(event) => setProfileForm({ ...profileForm, university_name: event.target.value })}
+              onChange={(event) =>
+                setProfileForm({
+                  ...profileForm,
+                  university_name: event.target.value,
+                })
+              }
             />
           </label>
           <label>
             Fakultet
             <input
               value={profileForm.faculty_name}
-              onChange={(event) => setProfileForm({ ...profileForm, faculty_name: event.target.value })}
+              onChange={(event) =>
+                setProfileForm({
+                  ...profileForm,
+                  faculty_name: event.target.value,
+                })
+              }
             />
           </label>
           <label>
             Studijski program
             <input
               value={profileForm.program_name}
-              onChange={(event) => setProfileForm({ ...profileForm, program_name: event.target.value })}
+              onChange={(event) =>
+                setProfileForm({
+                  ...profileForm,
+                  program_name: event.target.value,
+                })
+              }
             />
           </label>
           <label>
@@ -1742,13 +2108,18 @@ function Dashboard({
                   {option.label}
                 </option>
               ))}
-              </select>
-            </label>
-            <label hidden>
+            </select>
+          </label>
+          <label hidden>
             Početna godina studija
             <select
               value={profileForm.start_academic_year}
-              onChange={(event) => setProfileForm({ ...profileForm, start_academic_year: event.target.value })}
+              onChange={(event) =>
+                setProfileForm({
+                  ...profileForm,
+                  start_academic_year: event.target.value,
+                })
+              }
             >
               {ACADEMIC_YEARS.map((academicYear) => (
                 <option key={academicYear} value={academicYear}>
@@ -1760,7 +2131,8 @@ function Dashboard({
           <button type="submit">Sačuvaj profil</button>
         </form>
         <p className="warning-note">
-          Ukupni ECTS se ne mijenja ovdje jer promjena može uticati na strukturu već kreiranih semestara i predmeta.
+          Ukupni ECTS se ne mijenja ovdje jer promjena može uticati na strukturu
+          već kreiranih semestara i predmeta.
         </p>
         {profileMessage && <p className="success-message">{profileMessage}</p>}
 
@@ -1772,13 +2144,21 @@ function Dashboard({
             <p>Koristi najmanje 8 karaktera; preporuceno je 12 ili vise.</p>
           </div>
         </div>
-        <form className="settings-form password-settings" onSubmit={changePassword}>
+        <form
+          className="settings-form password-settings"
+          onSubmit={changePassword}
+        >
           <label>
             Trenutna lozinka
             <input
               type="password"
               value={passwordForm.currentPassword}
-              onChange={(event) => setPasswordForm({ ...passwordForm, currentPassword: event.target.value })}
+              onChange={(event) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  currentPassword: event.target.value,
+                })
+              }
               required
             />
           </label>
@@ -1787,7 +2167,12 @@ function Dashboard({
             <input
               type="password"
               value={passwordForm.password}
-              onChange={(event) => setPasswordForm({ ...passwordForm, password: event.target.value })}
+              onChange={(event) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  password: event.target.value,
+                })
+              }
               minLength="8"
             />
           </label>
@@ -1796,7 +2181,12 @@ function Dashboard({
             <input
               type="password"
               value={passwordForm.confirmPassword}
-              onChange={(event) => setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })}
+              onChange={(event) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  confirmPassword: event.target.value,
+                })
+              }
               minLength="8"
             />
           </label>
@@ -1810,7 +2200,10 @@ function Dashboard({
         <div className="section-title">
           <div>
             <h2>Napredak kroz studije</h2>
-            <p>{formatNumber(cycleEarnedEcts)} od {formatNumber(totalCycleEcts)} ECTS</p>
+            <p>
+              {formatNumber(cycleEarnedEcts)} od {formatNumber(totalCycleEcts)}{" "}
+              ECTS
+            </p>
           </div>
           <div className="semester-average">{progress.toFixed(0)}%</div>
         </div>
@@ -1830,7 +2223,9 @@ function Dashboard({
         <div className="year-tabs">
           {academicYears.map((academicYear) => (
             <button
-              className={academicYear.id === selectedAcademicYearId ? "active" : ""}
+              className={
+                academicYear.id === selectedAcademicYearId ? "active" : ""
+              }
               key={academicYear.id}
               type="button"
               onClick={() => setSelectedAcademicYearId(academicYear.id)}
@@ -1841,17 +2236,29 @@ function Dashboard({
         </div>
 
         <section className="summary-grid compact">
-          <StatCard label="Prosjek godine" value={yearStats.average ? yearStats.average.toFixed(2) : "-"} />
-          <StatCard label="Osvojeno ECTS u godini" value={formatNumber(yearStats.earnedEcts)} />
-          <StatCard label="Nepoloženo ECTS u godini" value={formatNumber(yearStats.failedEcts)} />
+          <StatCard
+            label="Prosjek godine"
+            value={yearStats.average ? yearStats.average.toFixed(2) : "-"}
+          />
+          <StatCard
+            label="Osvojeno ECTS u godini"
+            value={formatNumber(yearStats.earnedEcts)}
+          />
+          <StatCard
+            label="Nepoloženo ECTS u godini"
+            value={formatNumber(yearStats.failedEcts)}
+          />
         </section>
 
         <div className="semester-grid">
           {yearSemesters.map((semester) => {
-            const semesterSubjects = subjects.filter((subject) => subject.semester_id === semester.id);
+            const semesterSubjects = subjects.filter(
+              (subject) => subject.semester_id === semester.id,
+            );
             const stats = calculateStats(semesterSubjects);
             const targetEcts = Number(semester.target_ects);
-            const semesterStatus = stats.earnedEcts >= targetEcts ? "Završen" : "Nepotpun";
+            const semesterStatus =
+              stats.earnedEcts >= targetEcts ? "Završen" : "Nepotpun";
 
             return (
               <button
@@ -1862,11 +2269,18 @@ function Dashboard({
               >
                 <strong>{semester.name}</strong>
                 <div className="semester-card-metrics">
-                  <span>Prosjek {stats.average ? stats.average.toFixed(2) : "-"}</span>
-                  <span>Osvojeno {formatNumber(stats.earnedEcts)} / {formatNumber(targetEcts)} ECTS</span>
+                  <span>
+                    Prosjek {stats.average ? stats.average.toFixed(2) : "-"}
+                  </span>
+                  <span>
+                    Osvojeno {formatNumber(stats.earnedEcts)} /{" "}
+                    {formatNumber(targetEcts)} ECTS
+                  </span>
                   <span>Nepoloženo {formatNumber(stats.failedEcts)} ECTS</span>
                 </div>
-                <span className={`semester-status ${semesterStatus === "Završen" ? "complete" : "incomplete"}`}>
+                <span
+                  className={`semester-status ${semesterStatus === "Završen" ? "complete" : "incomplete"}`}
+                >
                   {semesterStatus}
                 </span>
               </button>
@@ -1887,7 +2301,8 @@ function Dashboard({
 
             return (
               <p className="warning-note">
-                Uneseno: {formatNumber(semesterStats.attemptedEcts)} / {formatNumber(targetEcts)} ECTS.{" "}
+                Uneseno: {formatNumber(semesterStats.attemptedEcts)} /{" "}
+                {formatNumber(targetEcts)} ECTS.{" "}
                 {ectsDifference < 0
                   ? `Nedostaje: ${formatNumber(Math.abs(ectsDifference))} ECTS.`
                   : `Prekoračenje: ${formatNumber(ectsDifference)} ECTS.`}
@@ -1898,17 +2313,33 @@ function Dashboard({
             <div>
               <h2>{selectedSemester.name}</h2>
               <p>
-                {getStudyYearLabel(academicYears.find((year) => year.id === selectedSemester.academic_year_id))} · cilj{" "}
-                {formatNumber(Number(selectedSemester.target_ects))} ECTS
+                {getStudyYearLabel(
+                  academicYears.find(
+                    (year) => year.id === selectedSemester.academic_year_id,
+                  ),
+                )}{" "}
+                · cilj {formatNumber(Number(selectedSemester.target_ects))} ECTS
               </p>
             </div>
-            <div className="semester-average">Prosjek {semesterStats.average ? semesterStats.average.toFixed(2) : "-"}</div>
+            <div className="semester-average">
+              Prosjek{" "}
+              {semesterStats.average ? semesterStats.average.toFixed(2) : "-"}
+            </div>
           </div>
 
           <section className="summary-grid compact">
-            <StatCard label="Osvojeno ECTS" value={formatNumber(semesterStats.earnedEcts)} />
-            <StatCard label="Prijavljeno ECTS" value={formatNumber(semesterStats.attemptedEcts)} />
-            <StatCard label="Nepoloženo ECTS" value={formatNumber(semesterStats.failedEcts)} />
+            <StatCard
+              label="Osvojeno ECTS"
+              value={formatNumber(semesterStats.earnedEcts)}
+            />
+            <StatCard
+              label="Prijavljeno ECTS"
+              value={formatNumber(semesterStats.attemptedEcts)}
+            />
+            <StatCard
+              label="Nepoloženo ECTS"
+              value={formatNumber(semesterStats.failedEcts)}
+            />
           </section>
 
           <SubjectForm
@@ -1929,11 +2360,12 @@ function Dashboard({
             onDelete={deleteSubject}
             saving={subjectSaving}
           />
-          {subjectMessage && <p className="success-message">{subjectMessage}</p>}
+          {subjectMessage && (
+            <p className="success-message">{subjectMessage}</p>
+          )}
           <SubjectLists stats={semesterStats} />
         </section>
       )}
-
     </main>
   );
 }
@@ -1951,8 +2383,16 @@ function StatCard({ label, value, note }) {
 function SubjectLists({ stats }) {
   return (
     <div className="lists-grid">
-      <SubjectList icon={<CheckCircle2 size={18} />} title="Položeni predmeti" subjects={stats.passedSubjects} />
-      <SubjectList icon={<XCircle size={18} />} title="Nepoloženi predmeti" subjects={stats.failedSubjects} />
+      <SubjectList
+        icon={<CheckCircle2 size={18} />}
+        title="Položeni predmeti"
+        subjects={stats.passedSubjects}
+      />
+      <SubjectList
+        icon={<XCircle size={18} />}
+        title="Nepoloženi predmeti"
+        subjects={stats.failedSubjects}
+      />
     </div>
   );
 }
